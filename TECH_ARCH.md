@@ -49,7 +49,7 @@
 │  🔨 Visual canvas (React Flow)                           │
 │  🔨 Node configuration UI                                │
 │  🔨 Workflow execution engine                            │
-│  🔨 Test mode                                            │
+│  🔨 Workflow validation                                  │
 │  🔨 Execution monitoring                                 │
 └──────────────────────────────────────────────────────────┘
 ```
@@ -60,7 +60,7 @@
 - Visual workflow builder with drag-drop
 - 16 node types (Trigger, Agent, Action, Utility)
 - Node configuration panel
-- Test execution with sample data
+- Workflow validation before publish
 - Workflow publish
 - Real-time execution monitoring
 - Execution logs (detailed step-by-step)
@@ -101,7 +101,7 @@
 - ✅ Publish/unpublish is DONE
 - **We only need to ADD:**
   - Execute workflow endpoint
-  - Test workflow endpoint
+  - Validate workflow endpoint
   - Get execution logs endpoint
 
 #### **BW_BotCoreFunctionalityService (Python Flask)**
@@ -217,7 +217,7 @@
   - React Flow canvas component
   - Node library panel
   - Configuration panel (dynamic based on node type)
-  - Test panel
+  - Validation modal
   - Monitoring page
 
 ---
@@ -233,7 +233,7 @@
 │  1. WorkflowCanvas.tsx          (React Flow wrapper)    │
 │  2. NodeLibraryPanel.tsx        (Left panel)            │
 │  3. NodeConfigPanel.tsx         (Right panel, dynamic)  │
-│  4. TestPanel.tsx               (Slide-in test UI)      │
+│  4. ValidationModal.tsx         (Pre-publish validation)│
 │  5. WorkflowMonitoring.tsx      (Execution logs page)   │
 │  6. Node components (16 types)  (Custom React Flow)     │
 │  7. ExecutionTimeline.tsx       (Chart component)       │
@@ -247,12 +247,11 @@
 │  NEW BACKEND ENDPOINTS (Week 1-2)                       │
 ├─────────────────────────────────────────────────────────┤
 │  1. POST /workFlow/:id/execute       (Run workflow)     │
-│  2. POST /workFlow/:id/test          (Dry-run test)     │
+│  2. POST /workFlow/:id/validate      (Pre-publish check)│
 │  3. GET  /workFlow/:id/executions    (List executions)  │
 │  4. GET  /execution/:id              (Get exec details) │
 │  5. POST /execution/:id/retry        (Retry failed)     │
-│  6. POST /workFlow/:id/validate      (Pre-publish check)│
-│  7. WebSocket /workflow-updates      (Real-time)        │
+│  6. WebSocket /workflow-updates      (Real-time)        │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -283,7 +282,7 @@
 │  │  │   (Left)     │  │   Canvas     │  │   (Right)    │ │  │
 │  │  └──────────────┘  └──────────────┘  └──────────────┘ │  │
 │  │                                                        │  │
-│  │  Test Panel (Slide-in)                                │  │
+│  │  Validation Modal (Pre-publish)                       │  │
 │  │  Monitoring Page (New)                                │  │
 │  └────────────────────────────────────────────────────────┘  │
 │                              │                               │
@@ -302,7 +301,7 @@
 │  ┌────────────────────────────────────────────────────────┐  │
 │  │  NEW: Workflow Execution Engine                        │  │
 │  │  • POST /workFlow/:id/execute                          │  │
-│  │  • POST /workFlow/:id/test                             │  │
+│  │  • POST /workFlow/:id/validate                         │  │
 │  │  • GET  /workFlow/:id/executions                       │  │
 │  │  • WebSocket /workflow-updates                         │  │
 │  └────────────────────────────────────────────────────────┘  │
@@ -345,16 +344,10 @@
    → PUT /workFlow/step/:wfId/:stepId
    → Request: { nextStepId: '...' }
 
-4. User clicks "Test"
-   → Frontend: Open test panel
-   → POST /workFlow/:id/test
-   → Request: { testData: {...} }
-   → Response: { steps: [{ stepId, status, output, time }] }
-
-5. User clicks "Publish"
+4. User clicks "Publish"
    → Frontend: Validate + Publish
    → POST /workFlow/:id/validate  (NEW)
-   → POST /workFlow/publish/:id   (EXISTING)
+   → If valid → POST /workFlow/publish/:id   (EXISTING)
    → Response: { status: 'ACTIVE' }
 ```
 
@@ -425,7 +418,7 @@ src/
 │   │   ├── WorkflowCanvas.tsx           # React Flow wrapper
 │   │   ├── NodeLibrary.tsx              # Left panel
 │   │   ├── ConfigPanel.tsx              # Right panel (dynamic)
-│   │   ├── TestPanel.tsx                # Test mode
+│   │   ├── ValidationModal.tsx          # Pre-publish validation
 │   │   ├── nodes/                       # Custom node components
 │   │   │   ├── TriggerNode.tsx
 │   │   │   ├── AgentNode.tsx
@@ -629,7 +622,7 @@ execution/
 │   └── execution-log.schema.ts
 └── dtos/
     ├── execute-workflow.dto.ts
-    ├── test-workflow.dto.ts
+    ├── validate-workflow.dto.ts
     └── retry-execution.dto.ts
 ```
 
@@ -829,64 +822,7 @@ export class StepExecutorService {
 }
 ```
 
-### 6.4 Test Execution (Dry-Run)
-
-```typescript
-// execution.service.ts
-async testWorkflow(
-  workflowId: string,
-  testData: Record<string, any>
-): Promise<TestResult> {
-  // Same as executeWorkflow but:
-  // 1. Don't save to database
-  // 2. Don't emit WebSocket events
-  // 3. Return all step results in response
-
-  const workflow = await this.loadWorkflow(workflowId);
-  const steps = await this.loadSteps(workflowId);
-
-  const results = [];
-  let context = { ...testData };
-  let currentStepId = steps[0].stepId;
-
-  while (currentStepId) {
-    const step = steps.find(s => s.stepId === currentStepId);
-
-    try {
-      const result = await this.stepExecutor.execute(step, context);
-
-      results.push({
-        stepId: step.stepId,
-        stepType: step.stepType,
-        status: 'success',
-        output: result.output,
-        duration: result.duration,
-      });
-
-      context = { ...context, ...result.output };
-      currentStepId = step.nextStepId;
-
-    } catch (error) {
-      results.push({
-        stepId: step.stepId,
-        stepType: step.stepType,
-        status: 'failed',
-        error: error.message,
-      });
-      break;
-    }
-  }
-
-  return {
-    workflowId,
-    testData,
-    steps: results,
-    totalDuration: results.reduce((sum, r) => sum + (r.duration || 0), 0),
-  };
-}
-```
-
-### 6.5 WebSocket Gateway
+### 6.4 WebSocket Gateway
 
 ```typescript
 // execution.gateway.ts
@@ -1135,49 +1071,6 @@ Response (200):
 }
 ```
 
-#### **Test Workflow (Dry-Run)**
-```http
-POST /workFlow/:workflowId/test
-Authorization: Bearer <token>
-
-Request Body:
-{
-  "testData": {
-    "phone_number": "+919876543210",
-    "message_text": "Test message"
-  }
-}
-
-Response (200):
-{
-  "workflowId": "67001def...",
-  "testData": { ... },
-  "steps": [
-    {
-      "stepId": "step_1",
-      "stepType": "trigger",
-      "status": "success",
-      "output": { "phone_number": "...", "message_text": "..." },
-      "duration": 120
-    },
-    {
-      "stepId": "step_2",
-      "stepType": "agent",
-      "status": "success",
-      "output": { "agent_response": "..." },
-      "duration": 2300
-    },
-    {
-      "stepId": "step_3",
-      "stepType": "action",
-      "status": "success",
-      "output": { "message_sent": true },
-      "duration": 850
-    }
-  ],
-  "totalDuration": 3270
-}
-```
 
 #### **Get Workflow Executions**
 ```http
@@ -1461,7 +1354,7 @@ Frontend (Vitest + React Testing Library):
   ✅ WorkflowCanvas.test.tsx
   ✅ NodeLibrary.test.tsx
   ✅ ConfigPanel.test.tsx
-  ✅ TestPanel.test.tsx
+  ✅ ValidationModal.test.tsx
   ✅ useWorkflow.test.ts
 ```
 
@@ -1470,14 +1363,14 @@ Frontend (Vitest + React Testing Library):
 ```
 Backend:
   ✅ Create workflow → Add steps → Publish → Execute
-  ✅ Test workflow with sample data
+  ✅ Validate workflow structure
   ✅ WebSocket event emission
   ✅ Retry failed execution
 
 Frontend:
   ✅ Drag-drop node → Configure → Save
   ✅ Connect nodes → Update nextStepId
-  ✅ Test mode → See results
+  ✅ Validate workflow → See errors
   ✅ Publish workflow → Success
 ```
 
@@ -1490,7 +1383,7 @@ Critical User Flows:
   ✅ User adds Decision agent
   ✅ User adds Send WhatsApp action
   ✅ User connects nodes
-  ✅ User tests workflow
+  ✅ User validates workflow
   ✅ User publishes workflow
   ✅ User monitors execution
   ✅ User retries failed execution
@@ -1646,7 +1539,7 @@ WebSocket:
 |--------|--------|----------|
 | Canvas load time | <2s (50 nodes) | Virtualization |
 | Save workflow | <500ms | Debounced API calls |
-| Test execution | <5s (3 steps) | Fast APIs |
+| Workflow execution | <5s (3 steps) | Fast APIs |
 | Real-time latency | <200ms | WebSocket |
 | Execution throughput | 100 workflows/sec | Horizontal scaling |
 
@@ -1705,7 +1598,7 @@ Day 1-7:
 
 Day 8-14:
   - feature/monitoring (Frontend dev)
-  - feature/test-mode (Full-stack dev)
+  - feature/validation (Full-stack dev)
   - Merge to develop → Test → Merge to main
 ```
 
@@ -1752,7 +1645,7 @@ Day 8-14:
 **Frontend (Dev 1 + Dev 2):**
 ```
 ✅ ConfigPanel.tsx (dynamic forms)
-✅ TestPanel.tsx (test mode)
+✅ ValidationModal.tsx (pre-publish validation)
 ✅ WorkflowMonitoring.tsx (logs page)
 ✅ WebSocket integration
 ✅ Error handling
@@ -1761,7 +1654,6 @@ Day 8-14:
 
 **Backend (Dev 3):**
 ```
-✅ Test endpoint (dry-run)
 ✅ Validation endpoint
 ✅ WebSocket gateway
 ✅ Execution logs API

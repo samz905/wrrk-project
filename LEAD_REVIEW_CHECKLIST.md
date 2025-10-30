@@ -295,31 +295,40 @@
 
 ---
 
-## Day 6 (Monday): Test Mode
+## Day 6 (Monday): Validation & Early Integration
 
 ### Morning Check
-- [ ] **Dev 2:** Test panel UI done?
-  - Test: Click "Test" button → Panel slides in
-  - Test: Input form shows correct fields
-- [ ] **Dev 3:** Test endpoint works?
-  - Test: `POST /workFlow/123/test` with test data
-  - Check: Returns step-by-step results (no DB save)
+- [ ] **Dev 1 + Dev 3:** Enhanced validation logic done?
+  - Test: `POST /workFlow/123/validate` with incomplete workflow
+  - Check: Returns specific errors (unconfigured nodes, orphan nodes, no trigger)
+  - Test: Validation detects circular dependencies (if implemented)
+- [ ] **Dev 2:** ValidationModal component done?
+  - Test: Click "Publish" → Modal shows validation results
+  - Test: Shows clear error messages with "Highlight node" buttons
 
 ### Afternoon Check
-- [ ] **Dev 2:** Test results display?
-  - Test: Run test → See results (✅ or ❌ for each step)
-  - Test: Expand step → See input/output data
-- [ ] **Both:** End-to-end test works?
-  - Test: Create workflow → Configure → Test → See results
+- [ ] **All Devs:** Early integration testing started?
+  - Test: Create workflow via API with JWT auth
+  - Test: Add steps with real node configs
+  - Test: Publish workflow after validation passes
+  - Check: Document any integration issues
+- [ ] **Dev 2:** UI polish improvements?
+  - Test: Loading states show during API calls
+  - Test: Error toasts appear on failures
+  - Test: Validation highlights problematic nodes
 
 ### End-of-Day Go/No-Go
 **Go if:**
-- ✅ Test mode works end-to-end
+- ✅ Validation catches major workflow issues
+- ✅ ValidationModal provides clear feedback
+- ✅ Basic integration with existing APIs working
 
 **No-Go if:**
-- ❌ Test endpoint failing → Priority: Fix tomorrow
+- ❌ Validation not working → Priority: Fix tomorrow
+- ❌ Critical integration issues → Coordinate with team
 
 **Tomorrow's Focus:**
+- Dev 1: Continue integration & auth
 - Dev 2: Monitoring page
 - Dev 3: Get executions API
 
@@ -406,7 +415,7 @@
 
 ### Afternoon Check
 - [ ] **All:** E2E test passes?
-  - Test: Complete user journey (create → test → publish → monitor)
+  - Test: Complete user journey (create → validate → publish → monitor)
   - If fails → Debug together
 
 ### Bug Triage (Continuous)
@@ -421,7 +430,7 @@
 **Common Bugs & Fixes:**
 - "Canvas crashes on drop" → Check nodeTypes mapping
 - "API returns 500" → Check payload format, check logs
-- "Test results not showing" → Check WebSocket/polling
+- "Validation errors not showing" → Check API response format
 - "Config not saving" → Check Zustand state update
 
 ### End-of-Day Go/No-Go
@@ -628,7 +637,7 @@
 **If not achieved:** Adjust Week 2 plan, cut nice-to-haves
 
 ### Week 2 (End of Day 10)
-- [ ] ✅ Test mode works
+- [ ] ✅ Validation works
 - [ ] ✅ Monitoring dashboard works
 - [ ] ✅ Integration with existing APIs works
 - [ ] ✅ E2E test passes
@@ -703,7 +712,7 @@ Achievements:
 - Simple workflow executes
 
 Week 2 Focus:
-- Test mode
+- Validation
 - Monitoring dashboard
 - Integration & deploy
 
@@ -720,7 +729,7 @@ Status: 🟢 On track for 2-week delivery
 - [ ] User can connect nodes visually
 - [ ] User can configure each node type
 - [ ] User can save workflow (persists to DB)
-- [ ] User can test workflow with sample data
+- [ ] User can validate workflow before publish
 - [ ] User can publish workflow
 - [ ] User can monitor executions with step-by-step logs
 - [ ] User can retry failed executions

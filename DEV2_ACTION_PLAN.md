@@ -12,7 +12,7 @@
 2. ✅ **Node Library Panel** (16 node types)
 3. ✅ **16 Custom Node Components**
 4. ✅ **16 Configuration Forms**
-5. ✅ **Test Panel UI**
+5. ✅ **Validation Modal UI**
 6. ✅ **Monitoring Dashboard**
 
 ---
@@ -826,163 +826,185 @@ Continue pattern...
 
 ---
 
-## Day 6: Test Panel (Monday)
+## Day 6: Validation Modal & UI Polish (Monday)
 
-**Time:** 7 hours
-**Goal:** Test panel UI complete
+**Time:** 6 hours
+**Goal:** Validation modal complete, UI polish
 
-### Task 6.1: Create Test Panel Component (3h)
+### Task 6.1: Create ValidationModal Component (2.5h)
 
-`src/components/workflow/test/TestPanel.tsx`:
+`src/components/workflow/ValidationModal.tsx`:
 
 ```typescript
-import { useState } from 'react';
-import { X } from 'lucide-react';
+import { AlertCircle, CheckCircle, X } from 'lucide-react';
 
-interface TestPanelProps {
-  workflowId: string;
-  triggerType: string;
-  onClose: () => void;
+interface ValidationError {
+  stepId?: string;
+  message: string;
 }
 
-export default function TestPanel({ workflowId, triggerType, onClose }: TestPanelProps) {
-  const [testData, setTestData] = useState<any>({});
-  const [testResults, setTestResults] = useState<any>(null);
-  const [isRunning, setIsRunning] = useState(false);
+interface ValidationModalProps {
+  errors: ValidationError[];
+  onClose: () => void;
+  onFixIssues: (stepId: string) => void;
+}
 
-  const runTest = async () => {
-    setIsRunning(true);
-    try {
-      const response = await fetch(`/api/workFlow/${workflowId}/test`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ testData }),
-      });
-      const results = await response.json();
-      setTestResults(results);
-    } catch (error) {
-      console.error('Test failed:', error);
-    } finally {
-      setIsRunning(false);
-    }
-  };
+export default function ValidationModal({ errors, onClose, onFixIssues }: ValidationModalProps) {
+  const hasErrors = errors.length > 0;
 
   return (
-    <div className="fixed right-0 top-0 bottom-0 w-96 bg-white shadow-lg z-50 overflow-y-auto">
-      <div className="p-4">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">Test Workflow</h3>
-          <button onClick={onClose}>
-            <X size={20} />
-          </button>
-        </div>
-
-        {/* Test Data Input */}
-        <div className="mb-4">
-          <h4 className="font-medium mb-2">Step 1: Provide Test Data</h4>
-          {triggerType === 'trigger_whatsapp' && (
-            <div className="space-y-2">
-              <input
-                type="text"
-                placeholder="Phone Number"
-                value={testData.phone_number || ''}
-                onChange={(e) => setTestData({ ...testData, phone_number: e.target.value })}
-                className="w-full px-3 py-2 border rounded"
-              />
-              <textarea
-                placeholder="Message Text"
-                value={testData.message_text || ''}
-                onChange={(e) => setTestData({ ...testData, message_text: e.target.value })}
-                className="w-full px-3 py-2 border rounded"
-                rows={3}
-              />
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+        <div className="p-6">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              {hasErrors ? (
+                <AlertCircle className="text-red-500" size={24} />
+              ) : (
+                <CheckCircle className="text-green-500" size={24} />
+              )}
+              <h3 className="text-lg font-semibold">
+                {hasErrors ? 'Validation Failed' : 'Validation Passed'}
+              </h3>
             </div>
-          )}
-          {/* Add other trigger types... */}
-        </div>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+              <X size={20} />
+            </button>
+          </div>
 
-        {/* Run Test Button */}
-        <button
-          onClick={runTest}
-          disabled={isRunning}
-          className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400"
-        >
-          {isRunning ? 'Running...' : 'Run Test'}
-        </button>
-
-        {/* Test Results */}
-        {testResults && (
-          <div className="mt-4">
-            <h4 className="font-medium mb-2">Test Results</h4>
-            <div className="space-y-2">
-              {testResults.steps?.map((step: any, index: number) => (
+          {/* Content */}
+          {hasErrors ? (
+            <div className="space-y-3">
+              <p className="text-sm text-gray-600 mb-4">
+                Please fix the following issues before publishing:
+              </p>
+              {errors.map((error, index) => (
                 <div
                   key={index}
-                  className={`p-3 border rounded ${
-                    step.status === 'success' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
-                  }`}
+                  className="p-3 bg-red-50 border border-red-200 rounded-lg"
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">
-                      {step.status === 'success' ? '✅' : '❌'} Step {index + 1}: {step.stepType}
-                    </span>
-                    <span className="text-xs text-gray-500">{step.duration}ms</span>
-                  </div>
-                  {step.output && (
-                    <pre className="text-xs mt-2 overflow-x-auto">
-                      {JSON.stringify(step.output, null, 2)}
-                    </pre>
+                  <p className="text-sm text-red-800 font-medium">{error.message}</p>
+                  {error.stepId && (
+                    <button
+                      onClick={() => {
+                        onFixIssues(error.stepId);
+                        onClose();
+                      }}
+                      className="text-xs text-red-600 hover:text-red-700 mt-2 underline"
+                    >
+                      Highlight node on canvas
+                    </button>
                   )}
-                  {step.error && <p className="text-red-600 text-sm mt-2">{step.error}</p>}
                 </div>
               ))}
             </div>
-            <p className="text-sm text-gray-600 mt-2">Total time: {testResults.totalDuration}ms</p>
+          ) : (
+            <p className="text-sm text-gray-600">
+              All workflow nodes are properly configured and connected. You can now publish your workflow.
+            </p>
+          )}
+
+          {/* Actions */}
+          <div className="mt-6 flex gap-2 justify-end">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
+            >
+              {hasErrors ? 'Close' : 'Cancel'}
+            </button>
+            {!hasErrors && (
+              <button
+                onClick={() => {
+                  /* Proceed to publish */
+                }}
+                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+              >
+                Publish & Go Live
+              </button>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
 }
 ```
 
-### Task 6.2: Add Test Button to Top Bar (1h)
+### Task 6.2: Integrate Validation in Publish Flow (1.5h)
 
 In WorkflowBuilder.tsx:
 
 ```typescript
-const [showTestPanel, setShowTestPanel] = useState(false);
+const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+const [showValidationModal, setShowValidationModal] = useState(false);
 
-// Add to UI:
-<div className="absolute top-4 right-4 flex gap-2">
-  <button onClick={() => setShowTestPanel(true)} className="px-4 py-2 bg-blue-600 text-white rounded">
-    🧪 Test
-  </button>
-  <button className="px-4 py-2 bg-gray-600 text-white rounded">
-    💾 Save Draft
-  </button>
-  <button className="px-4 py-2 bg-green-600 text-white rounded">
-    🚀 Publish
-  </button>
-</div>
+const handlePublish = async () => {
+  // Call validation API
+  try {
+    const response = await fetch(`/api/workFlow/${workflowId}/validate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const result = await response.json();
 
-{showTestPanel && (
-  <TestPanel
-    workflowId={workflowId}
-    triggerType={nodes[0]?.data.nodeType}
-    onClose={() => setShowTestPanel(false)}
+    if (result.valid) {
+      setValidationErrors([]);
+      setShowValidationModal(true); // Show success and publish
+    } else {
+      setValidationErrors(result.errors);
+      setShowValidationModal(true); // Show errors
+    }
+  } catch (error) {
+    console.error('Validation failed:', error);
+  }
+};
+
+const highlightNodeWithError = (stepId: string) => {
+  // Highlight the node on canvas with error styling
+  const node = nodes.find(n => n.id === stepId);
+  if (node) {
+    setNodes(nodes.map(n =>
+      n.id === stepId
+        ? { ...n, style: { ...n.style, border: '2px solid red' } }
+        : n
+    ));
+  }
+};
+
+// In JSX:
+{showValidationModal && (
+  <ValidationModal
+    errors={validationErrors}
+    onClose={() => setShowValidationModal(false)}
+    onFixIssues={highlightNodeWithError}
   />
 )}
 ```
 
-**Test:** Click Test button, panel slides in
+### Task 6.3: UI Polish & Error Handling (1.5h)
+
+Improvements:
+- [ ] Add loading states to all async operations
+- [ ] Improve error messages (network failures, validation)
+- [ ] Add success toasts for save/publish actions
+- [ ] Polish button states (hover, active, disabled)
+- [ ] Ensure all forms have proper validation feedback
+- [ ] Test keyboard navigation (Tab, Enter, Esc)
+
+### Task 6.4: Performance Optimizations (0.5h)
+
+- [ ] Memoize expensive React Flow renders
+- [ ] Debounce autosave (if implemented)
+- [ ] Optimize node library search
+- [ ] Lazy load config panel forms
 
 **End of Day 6 Check:**
-- [ ] Test panel opens
-- [ ] Can input test data
-- [ ] Run test calls API
-- [ ] Results display
+- [ ] ValidationModal shows clear error messages
+- [ ] Publish button triggers validation
+- [ ] Can highlight problematic nodes
+- [ ] UI is polished with loading states and error handling
+- [ ] No major performance issues
 
 ---
 

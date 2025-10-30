@@ -10,7 +10,7 @@
 
 1. ✅ **Execution Engine** (sequential step processing)
 2. ✅ **Step Executor** (16 node type implementations)
-3. ✅ **API Endpoints** (execute, test, validate, logs)
+3. ✅ **API Endpoints** (execute, validate, logs)
 4. ✅ **Database Schemas** (executions, logs)
 5. ✅ **Integration** (BotCore, Voice services)
 
@@ -926,95 +926,7 @@ curl -X POST http://localhost:3001/workFlow/123/execute \
 
 ---
 
-### Task 4.2: Create Test Workflow Endpoint (2h)
-
-Add to ExecutionService:
-
-```typescript
-// execution.service.ts
-@Injectable()
-export class ExecutionService {
-  constructor(
-    @InjectModel(Execution.name) private executionModel: Model<ExecutionDocument>,
-    @InjectModel(ExecutionLog.name) private logModel: Model<ExecutionLogDocument>,
-    private stepExecutor: StepExecutorService,
-  ) {}
-
-  /**
-   * Test workflow (dry-run, no DB save)
-   */
-  async testWorkflow(
-    workflowId: string,
-    testData: Record<string, any>
-  ): Promise<any> {
-    // Load workflow and steps
-    const Workflow = this.executionModel.db.model('workflows');
-    const WorkflowStep = this.executionModel.db.model('workflowsteps');
-
-    const workflow = await Workflow.findById(workflowId);
-    const steps = await WorkflowStep.find({ workflowId }).sort({ createdAt: 1 });
-
-    if (!workflow || steps.length === 0) {
-      throw new Error('Workflow not found');
-    }
-
-    // Execute steps (no DB save)
-    const results = [];
-    let context = { ...testData };
-
-    for (const step of steps) {
-      try {
-        const startTime = Date.now();
-        const result = await this.stepExecutor.execute(step, context);
-        const duration = Date.now() - startTime;
-
-        results.push({
-          stepId: step.stepId,
-          stepType: step.stepType,
-          status: 'success',
-          output: result.output,
-          duration,
-        });
-
-        context = { ...context, ...result.output };
-      } catch (error) {
-        results.push({
-          stepId: step.stepId,
-          stepType: step.stepType,
-          status: 'failed',
-          error: error.message,
-        });
-        break; // Stop on error
-      }
-    }
-
-    return {
-      workflowId,
-      testData,
-      steps: results,
-      totalDuration: results.reduce((sum, r) => sum + (r.duration || 0), 0),
-    };
-  }
-}
-```
-
-Add to controller:
-
-```typescript
-@Post(':id/test')
-async testWorkflow(
-  @Param('id') workflowId: string,
-  @Body() body: { testData: Record<string, any> }
-) {
-  return this.executionService.testWorkflow(workflowId, body.testData);
-}
-```
-
-**Test:** Same curl but use `/test` endpoint
-
----
-
-### Task 4.3: Create Get Executions Endpoint (1h)
+### Task 4.2: Create Get Executions Endpoint (1h)
 
 ```typescript
 // execution.service.ts

@@ -29,37 +29,24 @@ Build a visual workflow builder that allows users to:
 - Drag and drop 16 node types onto a canvas
 - Connect nodes visually to create workflows
 - Configure each node with specific parameters
-- Test workflows with sample data
+- Validate workflows before publish
 - Publish workflows for execution
 - Monitor workflow executions with step-by-step logs
 
-### Key Decisions (80/20 Principle)
-
-**In Scope:**
+### Scope
 - ✅ All 16 node types (3 triggers, 3 agents, 4 actions, 6 utilities)
 - ✅ React Flow canvas with drag-drop
 - ✅ Dynamic configuration panels for each node type
 - ✅ Workflow save/load (integrate with existing BotWot APIs)
-- ✅ Test mode with dry-run execution
 - ✅ Publish workflow with validation
 - ✅ Full monitoring dashboard with step-by-step execution logs
 - ✅ Polling-based updates (refresh to see new executions)
 - ✅ Reuse existing JWT auth + multi-tenant system
 
-**Out of Scope (Post-MVP):**
-- ❌ Real-time WebSocket updates (using polling instead)
-- ❌ Undo/redo functionality
-- ❌ Canvas minimap
-- ❌ Real-time canvas animations during execution
-- ❌ Workflow versioning
-- ❌ Keyboard shortcuts
-- ❌ Collaborative editing
-- ❌ Advanced canvas features (auto-layout, smart routing)
-- ❌ Workflow marketplace (future phase)
 
 ### Success Metrics
 - [ ] 16 node types fully implemented and tested
-- [ ] User can create, test, publish, and monitor a workflow end-to-end
+- [ ] User can create, validate, publish, and monitor a workflow end-to-end
 - [ ] Zero critical bugs preventing core functionality
 - [ ] All APIs integrated with existing BotWot backend
 - [ ] 70%+ unit test coverage for critical paths
@@ -71,11 +58,11 @@ Build a visual workflow builder that allows users to:
 
 ### Developer Roles
 
-**Dev 1 (Lead - You):**
-- Architecture & technical decisions
-- Critical path implementation (execution engine, React Flow setup)
-- Code review (all PRs)
-- Risk management & unblocking
+**Dev 1:**
+- Execution engine architecture
+- Critical path implementation
+- React Flow setup
+- Code review
 
 **Dev 2 (Frontend Specialist):**
 - React Flow canvas & node library
@@ -86,7 +73,7 @@ Build a visual workflow builder that allows users to:
 **Dev 3 (Backend Specialist):**
 - Execution engine (workflow execution logic)
 - Step executor (node-specific logic)
-- Test mode API (dry-run)
+- Validation API
 - Execution logs API
 
 ### Work Distribution (Hours Estimate)
@@ -96,10 +83,9 @@ Build a visual workflow builder that allows users to:
 | Epic 1: Canvas & Nodes | 10h | 25h | 0h | 35h |
 | Epic 2: Configuration | 5h | 30h | 0h | 35h |
 | Epic 3: Execution Engine | 5h | 0h | 25h | 30h |
-| Epic 4: Test & Validation | 5h | 5h | 10h | 20h |
+| Epic 4: Workflow Validation | 0h | 2h | 4h | 6h |
 | Epic 5: Monitoring | 5h | 20h | 10h | 35h |
-| Epic 6: Integration & Polish | 15h | 10h | 10h | 35h |
-| **Total** | **45h** | **90h** | **55h** | **190h** |
+| Epic 6: Integration & Polish | 20h | 13h | 12h | 45h |
 
 **Buffer:** 10-20 hours for unplanned issues, testing, refinement
 
@@ -150,17 +136,18 @@ Build a visual workflow builder that allows users to:
 
 ---
 
-### Epic 4: Test & Validation 🧪
-**Goal:** Users can test workflows before publishing
+### Epic 4: Workflow Validation ✅
+**Goal:** Users can validate workflows before publishing to catch errors early
 
 **Acceptance Criteria:**
-- [ ] Test panel UI (slide-in drawer)
-- [ ] Test data input form
-- [ ] Dry-run execution (no DB save, no side effects)
-- [ ] Step-by-step results display
-- [ ] Error highlighting and fix suggestions
+- [ ] Validation API (POST /workFlow/:id/validate)
+- [ ] Checks for unconfigured nodes
+- [ ] Checks for orphan nodes (not connected to workflow)
+- [ ] Checks for at least one trigger
+- [ ] ValidationModal displays clear error messages
+- [ ] Errors can highlight problematic nodes on canvas
 
-**Story Points:** 13
+**Story Points:** 3
 
 ---
 
@@ -643,94 +630,9 @@ Build a visual workflow builder that allows users to:
 
 ---
 
-## 📦 EPIC 4: Test & Validation
+## 📦 EPIC 4: Workflow Validation
 
-### Story 4.1: Build Test Panel UI (5 pts)
-**As a** user
-**I want** a test panel where I can input sample data
-**So that** I can test my workflow
-
-**Acceptance Criteria:**
-- [ ] "Test" button in top action bar
-- [ ] Test panel slides in from right
-- [ ] Form to input test data (based on trigger type)
-- [ ] "Run Test" button
-- [ ] Results panel below
-
-**Tasks:**
-- **[DEV2-65]** Create TestPanel.tsx component (2h)
-- **[DEV2-66]** Add "Test" button to top bar (0.5h)
-- **[DEV2-67]** Implement slide-in animation (1h)
-- **[DEV2-68]** Create test data input form (dynamic based on trigger) (2h)
-- **[DEV2-69]** Style panel (1h)
-- **[DEV2-70]** Test: Panel opens/closes (0.5h)
-
-**TDD:**
-- Write test: Test panel renders
-- Write test: Form fields match trigger type
-
-**Assigned:** Dev 2
-**Dependencies:** Story 1.3
-**Priority:** P1
-
----
-
-### Story 4.2: Implement Test Execution API (5 pts)
-**As a** developer
-**I want** a dry-run API endpoint
-**So that** workflows can be tested without side effects
-
-**Acceptance Criteria:**
-- [ ] POST /workFlow/:id/test endpoint created
-- [ ] Accepts testData in request body
-- [ ] Executes workflow WITHOUT saving to DB
-- [ ] Returns step-by-step results (no DB writes, no external side effects)
-
-**Tasks:**
-- **[DEV3-27]** Implement testWorkflow() method (similar to executeWorkflow but no DB save) (3h)
-- **[DEV3-28]** Create POST /workFlow/:id/test endpoint (1h)
-- **[DEV3-29]** Mock external API calls (optional, or use real but idempotent) (2h)
-- **[DEV3-30]** Test: Test mode doesn't save to DB (1h)
-
-**TDD:**
-- Write test: Test execution doesn't save
-- Write test: Returns step results
-
-**Assigned:** Dev 3
-**Dependencies:** Story 3.2, Story 3.3
-**Priority:** P1
-
----
-
-### Story 4.3: Display Test Results (3 pts)
-**As a** user
-**I want** to see step-by-step test results
-**So that** I can verify my workflow works
-
-**Acceptance Criteria:**
-- [ ] Results show each step: stepId, status (success/failed), output, duration
-- [ ] Success steps show green checkmark
-- [ ] Failed steps show red X and error message
-- [ ] Total execution time displayed
-
-**Tasks:**
-- **[DEV2-71]** Create TestResults component (2h)
-- **[DEV2-72]** Display step-by-step results (list) (1h)
-- **[DEV2-73]** Style results (colors, icons) (1h)
-- **[DEV2-74]** Add "Run Another Test" button (0.5h)
-- **[DEV2-75]** Test: Results display correctly (0.5h)
-
-**TDD:**
-- Write test: Results render for each step
-- Write test: Failed steps show error
-
-**Assigned:** Dev 2
-**Dependencies:** Story 4.1, Story 4.2
-**Priority:** P1
-
----
-
-### Story 4.4: Implement Workflow Validation (3 pts)
+### Story 4.1: Implement Workflow Validation (3 pts)
 **As a** user
 **I want** to validate my workflow before publishing
 **So that** I catch errors early
@@ -1172,36 +1074,36 @@ Build a visual workflow builder that allows users to:
 ### Week 2: Testing, Monitoring & Integration
 
 #### Day 6 (Monday)
-**Focus:** Test Mode
+**Focus:** Validation & Early Integration
 
 **Goals:**
-- [ ] Test panel UI built
-- [ ] Test execution API implemented
-- [ ] Test results display
+- [ ] Enhanced workflow validation implemented
+- [ ] ValidationModal component built
+- [ ] Early integration testing with existing APIs
 
 **Assignments:**
-- **Dev 1:** Code review, integration planning
-- **Dev 2:** Stories 4.1, 4.3 (Test panel, Test results)
-- **Dev 3:** Story 4.2 (Test execution API)
+- **Dev 1:** Help with validation logic, begin integration testing
+- **Dev 2:** Story 4.1 (ValidationModal UI), UI polish
+- **Dev 3:** Story 4.1 (Enhanced validation API with orphan node detection)
 
-**End-of-Day Check:** Can test workflow with sample data, see step-by-step results
+**End-of-Day Check:** Validation catches all major errors, basic integration working
 
 ---
 
 #### Day 7 (Tuesday)
-**Focus:** Validation + Monitoring Page
+**Focus:** Monitoring Page + Integration
 
 **Goals:**
-- [ ] Workflow validation implemented
 - [ ] Monitoring page layout built
 - [ ] Get executions API implemented
+- [ ] Integration with JWT auth complete
 
 **Assignments:**
-- **Dev 1:** Review validation logic
-- **Dev 2:** Stories 4.4 (Validation UI), 5.1 (Monitoring page)
-- **Dev 3:** Stories 4.4 (Validation API), 5.2 (Get executions API)
+- **Dev 1:** Complete API integration, JWT auth testing
+- **Dev 2:** Story 5.1 (Monitoring page)
+- **Dev 3:** Story 5.2 (Get executions API)
 
-**End-of-Day Check:** Validation catches errors, monitoring page shows executions
+**End-of-Day Check:** Monitoring page shows executions, auth works end-to-end
 
 ---
 
@@ -1375,7 +1277,7 @@ describe('POST /workFlow/:id/execute', () => {
 
 ```typescript
 // Example: workflow-builder.e2e.spec.ts
-test('create, test, publish, and monitor workflow', async ({ page }) => {
+test('create, validate, publish, and monitor workflow', async ({ page }) => {
   // Login
   await page.goto('/login');
   await page.fill('input[name="email"]', 'test@example.com');
@@ -1416,24 +1318,18 @@ test('create, test, publish, and monitor workflow', async ({ page }) => {
   await page.click('button:has-text("Save Draft")');
   await expect(page.locator('text=Draft saved')).toBeVisible();
 
-  // Test workflow
-  await page.click('button:has-text("Test")');
-  await page.fill('input[name="phone_number"]', '+919876543210');
-  await page.fill('input[name="message_text"]', 'Hello, I need help');
-  await page.click('button:has-text("Run Test")');
-
-  // Wait for test results
-  await expect(page.locator('text=Test Completed Successfully')).toBeVisible();
-  await expect(page.locator('.step-result')).toHaveCount(3);
-
-  // Publish workflow
+  // Publish workflow (validation happens automatically)
   await page.click('button:has-text("Publish")');
+
+  // Validation should pass
+  await expect(page.locator('text=Validation passed')).toBeVisible();
+
   await page.click('button:has-text("Publish & Go Live")');
   await expect(page).toHaveURL(/\/workflows\/[a-z0-9]+/); // Redirected to monitoring
 
   // Check monitoring page
   await expect(page.locator('text=🟢 Live')).toBeVisible();
-  await expect(page.locator('.execution-row')).toHaveCount(1); // Test execution
+  await expect(page.locator('.execution-row')).toHaveCount(0); // No executions yet
 
   // View execution details
   await page.click('button:has-text("View Details")');
@@ -1534,12 +1430,12 @@ test('create, test, publish, and monitor workflow', async ({ page }) => {
 **Critical Path Dependencies:**
 
 ```
-Canvas (1.1) → Drag-Drop (1.3) → Node Connections (1.4) → Config Panel (2.1) → Config Forms (2.2) → Validation (2.4) → Save (2.5) → Test Mode (4.1-4.3) → Publish → Execution (3.2-3.4) → Monitoring (5.1-5.4)
+Canvas (1.1) → Drag-Drop (1.3) → Node Connections (1.4) → Config Panel (2.1) → Config Forms (2.2) → Validation (2.4) → Save (2.5) → Validation (4.1) → Publish → Execution (3.2-3.4) → Monitoring (5.1-5.4)
 ```
 
 **Parallel Tracks:**
 
-- **Frontend (Dev 2):** Canvas → Nodes → Config → Test UI → Monitoring UI
+- **Frontend (Dev 2):** Canvas → Nodes → Config → Validation UI → Monitoring UI
 - **Backend (Dev 3):** Execution Engine → Step Executor → APIs → Logs
 - **Integration (Dev 1):** Architecture → Auth → API Integration → E2E Test
 
@@ -1605,7 +1501,7 @@ Canvas (1.1) → Drag-Drop (1.3) → Node Connections (1.4) → Config Panel (2.
 - [ ] User can connect nodes visually
 - [ ] User can configure each node type
 - [ ] User can save workflow (persists to DB)
-- [ ] User can test workflow with sample data
+- [ ] User can validate workflow before publish
 - [ ] User can publish workflow
 - [ ] User can monitor executions with step-by-step logs
 - [ ] User can retry failed executions
@@ -1614,7 +1510,7 @@ Canvas (1.1) → Drag-Drop (1.3) → Node Connections (1.4) → Config Panel (2.
 **Non-Functional:**
 - [ ] Canvas renders <2 seconds for 50 nodes
 - [ ] API responses <500ms (without LLM)
-- [ ] Test execution <5 seconds (3 steps)
+- [ ] Workflow execution <5 seconds (3 steps)
 - [ ] Zero critical security issues
 - [ ] Multi-tenant isolation verified
 

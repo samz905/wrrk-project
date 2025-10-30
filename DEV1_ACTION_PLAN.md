@@ -802,75 +802,17 @@ Body: { text }
 
 ---
 
-## Day 6: Test Mode Support (Monday)
+## Day 6: Validation & Early Integration (Monday)
 
-**Time:** 4 hours
-**Goal:** Help implement test mode
+**Time:** 6 hours
+**Goal:** Enhance validation, begin integration, polish UI
 
-### Task 6.1: Review Test Mode Architecture (1h)
+### Task 6.1: Enhance Validation Logic (2h)
 
-Test mode should:
-1. NOT save to database
-2. NOT send real messages
-3. Return step-by-step results immediately
-
-Help Dev 3 implement:
+Work with Dev 3 to implement comprehensive validation:
 
 ```typescript
 // execution.service.ts
-async testWorkflow(
-  workflowId: string,
-  testData: Record<string, any>
-): Promise<TestResult> {
-  // Same as executeWorkflow but:
-  // 1. Don't create execution record
-  // 2. Don't call external APIs (or use mock/idempotent calls)
-  // 3. Return all results in response
-
-  const workflow = await this.loadWorkflow(workflowId);
-  const steps = await this.loadSteps(workflowId);
-
-  const results = [];
-  let context = { ...testData };
-
-  for (const step of steps) {
-    try {
-      const result = await this.stepExecutor.execute(step, context);
-      results.push({
-        stepId: step.stepId,
-        stepType: step.stepType,
-        status: 'success',
-        output: result.output,
-        duration: result.duration,
-      });
-      context = { ...context, ...result.output };
-    } catch (error) {
-      results.push({
-        stepId: step.stepId,
-        status: 'failed',
-        error: error.message,
-      });
-      break;
-    }
-  }
-
-  return { workflowId, testData, steps: results };
-}
-```
-
-### Task 6.2: Code Review Test UI (2h)
-
-Review Dev 2's test panel:
-- [ ] Opens when "Test" button clicked
-- [ ] Form fields match trigger type
-- [ ] Results display correctly
-- [ ] Errors highlighted
-
-### Task 6.3: Help with Validation (1h)
-
-Work with Dev 3 on workflow validation:
-
-```typescript
 async validateWorkflow(workflowId: string): Promise<ValidationResult> {
   const workflow = await this.loadWorkflow(workflowId);
   const steps = await this.loadSteps(workflowId);
@@ -888,13 +830,39 @@ async validateWorkflow(workflowId: string): Promise<ValidationResult> {
   }
 
   // Check 2: No orphan nodes (all connected)
-  // TODO: Implement graph traversal
+  const connectedSteps = new Set<string>();
+  const triggerSteps = steps.filter(s => s.stepType === 'trigger');
+
+  // BFS traversal from each trigger
+  for (const trigger of triggerSteps) {
+    const queue = [trigger.stepId];
+    while (queue.length > 0) {
+      const currentId = queue.shift();
+      connectedSteps.add(currentId);
+      const current = steps.find(s => s.stepId === currentId);
+      if (current?.nextStepId) {
+        queue.push(current.nextStepId);
+      }
+    }
+  }
+
+  // Find orphan nodes
+  for (const step of steps) {
+    if (!connectedSteps.has(step.stepId)) {
+      errors.push({
+        stepId: step.stepId,
+        message: `Step ${step.stepId} is not connected to workflow`,
+      });
+    }
+  }
 
   // Check 3: At least one trigger
-  const triggers = steps.filter(s => s.stepType === 'trigger');
-  if (triggers.length === 0) {
+  if (triggerSteps.length === 0) {
     errors.push({ message: 'Workflow must have at least one trigger' });
   }
+
+  // Check 4: No circular dependencies
+  // TODO: Implement cycle detection if needed
 
   return {
     valid: errors.length === 0,
@@ -903,10 +871,37 @@ async validateWorkflow(workflowId: string): Promise<ValidationResult> {
 }
 ```
 
+### Task 6.2: Code Review Validation UI (1.5h)
+
+Review Dev 2's ValidationModal component:
+- [ ] Opens when "Publish" button clicked
+- [ ] Shows clear error messages for each validation issue
+- [ ] Highlights problematic nodes on canvas
+- [ ] Allows user to fix issues and re-validate
+- [ ] Prevents publishing if validation fails
+
+### Task 6.3: Early Integration Testing (2h)
+
+Begin integration with existing BotWot backend:
+- [ ] Test workflow creation API with JWT auth
+- [ ] Test step creation with real node configs
+- [ ] Test workflow publishing flow
+- [ ] Document any integration issues
+- [ ] Coordinate with Dev 3 on auth token handling
+
+### Task 6.4: UI Polish & Bug Fixes (0.5h)
+
+Address any UI issues found during testing:
+- [ ] Canvas interactions smooth
+- [ ] Node configuration saves correctly
+- [ ] Validation feedback clear
+- [ ] Loading states working
+
 **End of Day 6 Check:**
-- [ ] Test mode works
-- [ ] Validation catches errors
-- [ ] User can test workflow before publishing
+- [ ] Validation catches all major workflow issues
+- [ ] ValidationModal provides clear feedback
+- [ ] Basic integration with existing APIs working
+- [ ] No critical UI bugs
 
 ---
 
@@ -1076,7 +1071,7 @@ export default defineConfig({
 // e2e/workflow-builder.spec.ts
 import { test, expect } from '@playwright/test';
 
-test('create, test, publish, and monitor workflow', async ({ page }) => {
+test('create, validate, publish, and monitor workflow', async ({ page }) => {
   // Login
   await page.goto('/login');
   await page.fill('input[name="email"]', 'test@example.com');
@@ -1131,24 +1126,18 @@ test('create, test, publish, and monitor workflow', async ({ page }) => {
   await page.click('button:has-text("Save Draft")');
   await expect(page.locator('text=Draft saved')).toBeVisible();
 
-  // Test workflow
-  await page.click('button:has-text("Test")');
-  await page.fill('input[name="phone_number"]', '+919876543210');
-  await page.fill('input[name="message_text"]', 'Hello, I need help');
-  await page.click('button:has-text("Run Test")');
-
-  // Wait for results
-  await expect(page.locator('text=Test Completed Successfully')).toBeVisible({ timeout: 10000 });
-  await expect(page.locator('.step-result')).toHaveCount(3);
-
-  // Publish workflow
+  // Publish workflow (validation happens automatically)
   await page.click('button:has-text("Publish")');
+
+  // Validation should pass
+  await expect(page.locator('text=Validation passed')).toBeVisible();
+
   await page.click('button:has-text("Publish & Go Live")');
   await expect(page).toHaveURL(/\/workflows\/[a-z0-9]+/);
 
   // Check monitoring page
   await expect(page.locator('text=🟢 Live')).toBeVisible();
-  await expect(page.locator('.execution-row')).toHaveCount(1); // Test execution
+  await expect(page.locator('.execution-row')).toHaveCount(0); // No executions yet
 
   // View details
   await page.click('button:has-text("View Details")');
