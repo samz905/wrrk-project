@@ -1,9 +1,9 @@
 # wrrk.ai Visual Workflow Builder - MVP Sprint Plan
 
-**Version:** 1.0
+**Version:** 2.0
 **Sprint Duration:** 2 weeks (10 working days)
-**Sprint Goal:** Deliver a production-ready visual workflow builder with all 16 node types, full monitoring, and existing BotWot integration
-**Team:** 3 developers (1 lead + 2 devs)
+**Sprint Goal:** Deliver a production-ready visual workflow builder with 30 node types (16 original + 14 Shopify), full monitoring, and existing BotWot integration
+**Team:** 4 developers specialized by domain
 **Start Date:** [INSERT DATE]
 **End Date:** [INSERT DATE]
 
@@ -26,7 +26,7 @@
 
 ### Sprint Goal
 Build a visual workflow builder that allows users to:
-- Drag and drop 16 node types onto a canvas
+- Drag and drop 30 node types onto a canvas (16 original + 14 Shopify)
 - Connect nodes visually to create workflows
 - Configure each node with specific parameters
 - Validate workflows before publish
@@ -34,7 +34,17 @@ Build a visual workflow builder that allows users to:
 - Monitor workflow executions with step-by-step logs
 
 ### Scope
-- ✅ All 16 node types (3 triggers, 3 agents, 4 actions, 6 utilities)
+**Original Nodes (16):**
+- ✅ 3 triggers (WhatsApp, Email, Voice)
+- ✅ 3 agents (Conversational, Decision, Reasoning)
+- ✅ 4 actions (Send WhatsApp, Send Email, Initiate Call, Update CRM)
+- ✅ 6 utilities (Text Gen, Sentiment, Intent, Vulnerability, Reason, Custom AI)
+
+**Shopify Nodes (14):**
+- ✅ 5 Shopify triggers (Order Created, Fulfilled, Delivered, Cancelled, Time Reminder)
+- ✅ 9 Shopify actions (Get Product, Get All Products, Get Order, Auth Customer, Get Shop, Create Order, Confirm Order, Cancel Order, Update Address)
+
+**Core Features:**
 - ✅ React Flow canvas with drag-drop
 - ✅ Dynamic configuration panels for each node type
 - ✅ Workflow save/load (integrate with existing BotWot APIs)
@@ -43,12 +53,12 @@ Build a visual workflow builder that allows users to:
 - ✅ Polling-based updates (refresh to see new executions)
 - ✅ Reuse existing JWT auth + multi-tenant system
 
-
 ### Success Metrics
-- [ ] 16 node types fully implemented and tested
+- [ ] 30 node types fully implemented and tested
+- [ ] Shopify integration working end-to-end
 - [ ] User can create, validate, publish, and monitor a workflow end-to-end
 - [ ] Zero critical bugs preventing core functionality
-- [ ] All APIs integrated with existing BotWot backend
+- [ ] All APIs integrated with existing BotWot backend (including Shopify service)
 - [ ] 70%+ unit test coverage for critical paths
 - [ ] E2E test for complete user journey
 
@@ -58,85 +68,119 @@ Build a visual workflow builder that allows users to:
 
 ### Developer Roles
 
-**Dev 1:**
-- Execution engine architecture
-- Critical path implementation
-- React Flow setup
-- Code review
+**Dev 1 - Canvas & UX Specialist:**
+- React Flow canvas setup and configuration
+- Drag-drop functionality
+- Node connection validation
+- Canvas controls (pan, zoom, fit view)
+- Canvas state management (Zustand)
+- Visual feedback and interactions
+- Integration coordination
 
-**Dev 2 (Frontend Specialist):**
-- React Flow canvas & node library
-- Node components (16 types)
-- Configuration panels (dynamic forms)
-- Monitoring dashboard UI
+**Dev 2 - Nodes & Configuration Specialist:**
+- All 30 node components (visual display)
+- All 30 configuration forms (dynamic panels)
+- Node library panel (left sidebar)
+- Config panel UI (right sidebar)
+- Variable insertion component
+- Form validation (Yup)
+- Node type schemas
 
-**Dev 3 (Backend Specialist):**
-- Execution engine (workflow execution logic)
-- Step executor (node-specific logic)
-- Validation API
-- Execution logs API
+**Dev 3 - Execution Engine Specialist:**
+- Execution engine core architecture
+- Step executor for all 30 node types
+- Integration with BotCore, Voice, Shopify APIs
+- Workflow validation logic
+- Publish workflow functionality
+- Database schemas (executions, logs)
+- Error handling and timeouts
 
-### Work Distribution (Hours Estimate)
-
-| Epic | Dev 1 (Lead) | Dev 2 (Frontend) | Dev 3 (Backend) | Total Hours |
-|------|--------------|------------------|-----------------|-------------|
-| Epic 1: Canvas & Nodes | 10h | 25h | 0h | 35h |
-| Epic 2: Configuration | 5h | 30h | 0h | 35h |
-| Epic 3: Execution Engine | 5h | 0h | 25h | 30h |
-| Epic 4: Workflow Validation | 0h | 2h | 4h | 6h |
-| Epic 5: Monitoring | 5h | 20h | 10h | 35h |
-| Epic 6: Integration & Polish | 20h | 13h | 12h | 45h |
-
-**Buffer:** 10-20 hours for unplanned issues, testing, refinement
-
----
+**Dev 4 - Monitoring Dashboard Specialist:**
+- Complete monitoring page layout
+- Execution list with filters
+- Execution details view (step-by-step)
+- Step log visualization
+- Retry failed execution
+- Polling/refresh mechanism
+- Dashboard analytics and stats
 
 ## Epics
 
-### Epic 1: Visual Canvas & Node Library 🎨
+### Epic 1: Canvas & Drag-Drop 🎨
+**Owner:** Dev 1 (Canvas & UX Specialist)
 **Goal:** Users can drag nodes onto a canvas and connect them visually
 
 **Acceptance Criteria:**
 - [ ] React Flow canvas renders with pan/zoom
-- [ ] Left panel shows 16 node types in categories
+- [ ] Background grid visible
+- [ ] Controls (zoom in/out, fit view) working
 - [ ] Drag-drop from library to canvas works
 - [ ] Nodes can be connected (output → input)
 - [ ] Invalid connections are prevented
-- [ ] Canvas state persists (save/load)
+- [ ] Canvas state managed (Zustand)
+- [ ] Visual feedback during drag/connect
 
 **Story Points:** 21
 
 ---
 
-### Epic 2: Node Configuration System ⚙️
+### Epic 2: Node Library & Components 📦
+**Owner:** Dev 2 (Nodes & Config Specialist)
+**Goal:** All 30 node types display correctly with visual indicators
+
+**Acceptance Criteria:**
+- [ ] Left panel shows 30 node types in categories
+- [ ] Search and filter functionality
+- [ ] Collapsible categories (Triggers, Shopify Triggers, Agents, Actions, Shopify Actions, Utilities)
+- [ ] 30 custom node components created
+- [ ] Nodes show configured/unconfigured status
+- [ ] Nodes have correct colors and icons
+- [ ] Drag handles and ports positioned correctly
+
+**Story Points:** 25
+
+---
+
+### Epic 3: Configuration System ⚙️
+**Owner:** Dev 2 (Nodes & Config Specialist)
 **Goal:** Users can configure each node type with specific parameters
 
 **Acceptance Criteria:**
 - [ ] Right panel opens when node is selected
-- [ ] Dynamic forms based on node type
+- [ ] Dynamic forms based on node type (30 forms total)
+- [ ] All original node forms (16)
+- [ ] All Shopify node forms (14)
 - [ ] Variable insertion (autocomplete)
 - [ ] Form validation (required fields, format checks)
 - [ ] Configuration saves to node data
+- [ ] Reusable form components and patterns
 
-**Story Points:** 21
+**Story Points:** 34
 
 ---
 
-### Epic 3: Workflow Execution Engine 🚀
-**Goal:** Workflows execute correctly with all node types
+### Epic 4: Workflow Execution Engine 🚀
+**Owner:** Dev 3 (Execution Engine Specialist)
+**Goal:** Workflows execute correctly with all 30 node types
 
 **Acceptance Criteria:**
 - [ ] Execute workflow endpoint (`POST /workFlow/:id/execute`)
 - [ ] Step-by-step execution with context passing
-- [ ] All 16 node types execute correctly
+- [ ] All 16 original node types execute correctly
+- [ ] All 14 Shopify node types execute correctly
+- [ ] Integration with BotCore APIs
+- [ ] Integration with Voice service
+- [ ] Integration with Shopify service
 - [ ] Error handling and logging
 - [ ] Execution records saved to database
+- [ ] Step logs saved with input/output/duration
 
-**Story Points:** 21
+**Story Points:** 29
 
 ---
 
-### Epic 4: Workflow Validation ✅
+### Epic 5: Validation & Publish ✅
+**Owner:** Dev 3 (lead), Dev 1 & Dev 2 (support)
 **Goal:** Users can validate workflows before publishing to catch errors early
 
 **Acceptance Criteria:**
@@ -144,39 +188,52 @@ Build a visual workflow builder that allows users to:
 - [ ] Checks for unconfigured nodes
 - [ ] Checks for orphan nodes (not connected to workflow)
 - [ ] Checks for at least one trigger
-- [ ] ValidationModal displays clear error messages
-- [ ] Errors can highlight problematic nodes on canvas
+- [ ] Checks for circular dependencies
+- [ ] ValidationModal displays clear error messages (Dev 1)
+- [ ] Errors can highlight problematic nodes on canvas (Dev 1)
+- [ ] Publish workflow functionality (Dev 3)
+- [ ] Workflow status transitions correctly
 
-**Story Points:** 3
+**Story Points:** 13
 
 ---
 
-### Epic 5: Monitoring & Execution Logs 📊
+### Epic 6: Monitoring Dashboard 📊
+**Owner:** Dev 4 (Monitoring Dashboard Specialist)
 **Goal:** Users can monitor workflow executions with detailed logs
 
 **Acceptance Criteria:**
 - [ ] Monitoring page with execution list
 - [ ] Filters (status, date range)
+- [ ] Pagination for execution list
 - [ ] Expandable execution details (step-by-step)
+- [ ] Step logs show input/output/duration
+- [ ] Visual timeline of execution
 - [ ] Retry failed execution
-- [ ] Polling-based refresh
+- [ ] Polling-based refresh (every 5 seconds)
+- [ ] Real-time status updates
+- [ ] Export logs functionality
 
-**Story Points:** 21
+**Story Points:** 29
 
 ---
 
-### Epic 6: Integration & Polish ✨
+### Epic 7: Integration & Testing ✨
+**Owner:** All Developers
 **Goal:** End-to-end integration with existing BotWot backend + bug fixes
 
 **Acceptance Criteria:**
-- [ ] JWT auth integration
-- [ ] Multi-tenant isolation (orgId, userId)
-- [ ] Integration with existing workflow APIs
-- [ ] E2E test (create → test → publish → monitor)
-- [ ] Bug fixes from testing
-- [ ] Performance optimization
+- [ ] JWT auth integration (Dev 1)
+- [ ] Multi-tenant isolation (orgId, userId) (Dev 3)
+- [ ] Integration with existing workflow APIs (Dev 1)
+- [ ] Shopify webhook integration (Dev 3)
+- [ ] E2E test (create → test → publish → monitor) (Dev 1)
+- [ ] Bug fixes from testing (All devs)
+- [ ] Performance optimization (All devs)
+- [ ] Cross-browser testing (Dev 1, Dev 2, Dev 4)
+- [ ] Load testing (Dev 3)
 
-**Story Points:** 13
+**Story Points:** 21
 
 ---
 

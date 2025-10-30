@@ -26,8 +26,10 @@
 #### 2. Stand-Up Meeting (15 min)
 
 **Format:**
-- Dev 2 (Frontend): What did you do? What are you doing? Blockers?
-- Dev 3 (Backend): What did you do? What are you doing? Blockers?
+- Dev 1 (Canvas & UX): What did you do? What are you doing? Blockers?
+- Dev 2 (Nodes & Config): What did you do? What are you doing? Blockers?
+- Dev 3 (Execution Engine): What did you do? What are you doing? Blockers?
+- Dev 4 (Monitoring): What did you do? What are you doing? Blockers?
 - You: Share your focus for today
 
 **Take Notes:**
@@ -127,149 +129,232 @@
 ## Day 1 (Monday): Setup & Foundation
 
 ### Morning Check
-- [ ] **Dev 2:** Created folder structure?
+- [ ] **Dev 1:** Created folder structure?
   - Check: `src/components/workflow/` exists
   - Check: `src/types/workflow.types.ts` exists
+- [ ] **Dev 2:** Node library folder structure ready?
+  - Check: `src/components/workflow/nodes/` exists
+  - Check: Node component templates prepared
 - [ ] **Dev 3:** Created schemas?
   - Check: `execution.schema.ts` and `execution-log.schema.ts` exist
   - Run: `npm run build` (should compile without errors)
+- [ ] **Dev 4:** Monitoring page structure created?
+  - Check: `src/pages/workflow/monitoring/` exists
+  - Check: Initial layout component created
 
 ### Afternoon Check
-- [ ] **Dev 2:** React Flow canvas renders?
+- [ ] **Dev 1:** React Flow canvas renders?
   - Test: Open browser → Canvas shows grid
   - Test: Pan/zoom works
-- [ ] **Dev 2:** Node library panel shows 16 nodes?
+- [ ] **Dev 2:** Node library panel shows 30 nodes?
   - Test: See all 4 categories (Triggers, Agents, Actions, Utilities)
   - Test: Search works (type "whatsapp" → filters)
+  - Test: All 30 nodes listed (16 original + 14 Shopify)
 - [ ] **Dev 3:** Schemas registered in module?
   - Check: MongoDB collections created
+- [ ] **Dev 4:** Monitoring page route works?
+  - Test: Navigate to `/workflows/123/monitoring`
+  - Test: Basic layout renders
 
 ### End-of-Day Go/No-Go
 **Go if:**
 - ✅ Canvas renders
-- ✅ Node library shows nodes
+- ✅ Node library shows 30 nodes
 - ✅ Schemas in DB
+- ✅ Monitoring page accessible
 
 **No-Go if:**
 - ❌ React Flow not loading → Priority: Debug tomorrow morning
 - ❌ Schemas have errors → Priority: Fix schemas
+- ❌ Node library incomplete → Dev 2 priority tomorrow
 
 **Tomorrow's Focus:**
-- Dev 2: Drag-drop + node components
+- Dev 1: Drag-drop functionality
+- Dev 2: Start node components
 - Dev 3: Execution engine core
+- Dev 4: Execution list UI
 
 ---
 
-## Day 2 (Tuesday): Drag-Drop & Execution Engine
+## Day 2 (Tuesday): Drag-Drop & Core Components
 
 ### Morning Check
-- [ ] **Dev 2:** Drag-drop working?
+- [ ] **Dev 1:** Drag-drop working?
   - Test: Drag node from library → Drop on canvas → Node appears
   - Test: Node has unique ID
   - Test: Node positioned correctly
+- [ ] **Dev 2:** First 5 node components done?
+  - Check: Visual components for 5 most common nodes
+  - Test: Nodes render with correct icons/labels
 - [ ] **Dev 3:** Execution engine skeleton exists?
   - Check: `execution-engine.service.ts` created
   - Check: `executeWorkflow()` method exists
+- [ ] **Dev 4:** Execution list fetches data?
+  - Test: Table loads mock/real data
+  - Check: API call to `GET /workFlow/123/executions`
 
 ### Afternoon Check
-- [ ] **Dev 2:** Node connections work?
+- [ ] **Dev 1:** Node connections work?
   - Test: Drag from output handle → Input handle → Edge created
   - Test: Invalid connections blocked (Trigger → Trigger should fail)
-- [ ] **Dev 2:** Config panel opens?
+- [ ] **Dev 1:** Config panel opens?
   - Test: Click node → Right panel opens
+  - Test: Panel shows node info
+- [ ] **Dev 2:** 10 node components done?
+  - Test: All triggers + agents rendered
 - [ ] **Dev 3:** Step executor skeleton exists?
   - Check: `step-executor.service.ts` created
   - Check: Has handlers for trigger, agent, action, utility
+- [ ] **Dev 4:** Execution filters work?
+  - Test: Filter by status (completed, failed, in_progress)
+  - Test: Filter by date range
 
 ### End-of-Day Go/No-Go
 **Go if:**
 - ✅ Drag-drop works
 - ✅ Nodes connect
+- ✅ 10 node components done
 - ✅ Execution engine exists
+- ✅ Monitoring table shows data
 
 **No-Go if:**
 - ❌ Drag-drop buggy → Priority: Fix tomorrow
 - ❌ Execution engine not started → Pair with Dev 3
+- ❌ Dev 2 behind on components → Adjust targets
 
 **Tomorrow's Focus:**
-- Dev 2: Config panel + form router
+- Dev 1: Connection validation logic
+- Dev 2: Complete all 30 node components
 - Dev 3: Implement node type handlers
+- Dev 4: Execution details view
 
 ---
 
 ## Day 3 (Wednesday): Connections & Node Handlers
 
 ### Morning Check
-- [ ] **Dev 2:** Connection validation works?
+- [ ] **Dev 1:** Connection validation works?
   - Test: Try all invalid connections (should be blocked)
   - Test: Try all valid connections (should work)
-- [ ] **Dev 3:** At least 4 node types work?
+- [ ] **Dev 2:** All 30 node components done?
+  - Check: All nodes render on canvas correctly
+  - Test: Each node has proper styling
+- [ ] **Dev 2:** Started config forms (at least 5)?
+  - Test: WhatsApp Trigger, Email Trigger, Voice Trigger config forms
+  - Test: Conversational Agent, Decision Agent config forms
+- [ ] **Dev 3:** At least 4 node types work in execution?
   - Test: Execute workflow with WhatsApp Trigger
   - Test: Execute workflow with Conversational Agent
+- [ ] **Dev 4:** Execution details view works?
+  - Test: Click execution → See step-by-step details
+  - Test: Each step shows status, timestamp, logs
 
 ### Afternoon Check
-- [ ] **Dev 2:** Config panel routes to correct form?
+- [ ] **Dev 1:** Config panel routes to correct form?
   - Test: Click WhatsApp Trigger → See WhatsApp config form
   - Test: Click Decision Agent → See Decision Agent config form
+- [ ] **Dev 2:** 10 config forms done?
+  - Check: All trigger and agent config forms complete
 - [ ] **Dev 3:** Agent calls BotCore?
   - Check logs: See API call to `http://bot-service:5000/qna`
   - Check: Response parsed correctly
+- [ ] **Dev 4:** Retry functionality skeleton exists?
+  - Check: Retry button appears for failed executions
+  - Test: Click retry (can be mock at this stage)
 
 ### End-of-Day Go/No-Go
 **Go if:**
 - ✅ Connections work
-- ✅ Config panel shows correct form
-- ✅ At least 4 node types work
+- ✅ All 30 node components done
+- ✅ 10 config forms done
+- ✅ At least 4 node types execute
+- ✅ Execution details show correctly
 
 **No-Go if:**
-- ❌ Connection validation broken → Priority: Fix
+- ❌ Connection validation broken → Priority: Fix tomorrow
 - ❌ BotCore integration failing → Priority: Debug API calls
+- ❌ Dev 2 behind on forms → Pair to unblock
 
 **Tomorrow's Focus:**
-- Dev 2: Start building all 16 config forms
-- Dev 3: Complete all 16 node type handlers
+- Dev 1: Canvas polish (pan, zoom, fit view)
+- Dev 2: Complete remaining 20 config forms
+- Dev 3: Complete all 30 node type handlers
+- Dev 4: Implement retry functionality
 
 ---
 
 ## Day 4 (Thursday): Config Forms & Node Types
 
 ### Morning Check
-- [ ] **Dev 2:** 4 config forms done?
-  - Test: WhatsApp Trigger, Email Trigger, Voice Trigger, Conversational Agent
+- [ ] **Dev 1:** Canvas controls work?
+  - Test: Pan, zoom, fit view buttons
+  - Test: Keyboard shortcuts (if implemented)
+- [ ] **Dev 2:** 15 config forms done?
+  - Test: All triggers, agents, 4-5 actions
   - Test: Forms validate (required fields)
-- [ ] **Dev 3:** 8 node types work?
-  - Test: All triggers (3) + all agents (3) + 2 actions
+- [ ] **Dev 3:** 12 node types work in execution?
+  - Test: All triggers (8 total: 3 original + 5 Shopify)
+  - Test: All agents (3)
+  - Test: 1 action node
+- [ ] **Dev 4:** Retry functionality works?
+  - Test: Click retry on failed execution
+  - Check: New execution created
 
 ### Afternoon Check
-- [ ] **Dev 2:** 8 config forms done?
-  - Check: All triggers, agents, 2 actions
-- [ ] **Dev 3:** 12 node types work?
-  - Test: All triggers, agents, actions
+- [ ] **Dev 1:** State management solid?
+  - Test: Canvas state persists correctly
+  - Test: Undo/redo (if implemented)
+- [ ] **Dev 2:** 20 config forms done?
+  - Check: All triggers, agents, half of actions
+  - Test: Variable insertion working in forms
+- [ ] **Dev 3:** 18 node types work?
+  - Test: All triggers, agents, 7-8 actions
+  - Check: Shopify nodes executing correctly
+- [ ] **Dev 4:** Dashboard analytics added?
+  - Check: Total executions count
+  - Check: Success/failure rate chart (basic)
 
 ### End-of-Day Go/No-Go
 **Go if:**
-- ✅ 8 config forms done
-- ✅ 12 node types work
+- ✅ 20 config forms done
+- ✅ 18 node types work
+- ✅ Canvas fully functional
+- ✅ Retry works
 
 **No-Go if:**
 - ❌ Dev 2 stuck on forms → Pair tomorrow morning
-- ❌ Dev 3 stuck on integrations → Debug together
+- ❌ Dev 3 stuck on Shopify integrations → Debug together
+- ❌ Critical canvas bugs → Dev 1 priority
 
 **Tomorrow's Focus:**
-- Dev 2: Finish all 16 config forms
-- Dev 3: Finish all 16 node types + validation
+- Dev 1: Integration support, JWT auth setup
+- Dev 2: Finish all 30 config forms
+- Dev 3: Finish all 30 node types + validation
+- Dev 4: Polish monitoring dashboard
 
 ---
 
 ## Day 5 (Friday): Complete All Forms & Types
 
 ### Morning Check
-- [ ] **Dev 2:** All 16 config forms done?
+- [ ] **Dev 1:** Integration with APIs started?
+  - Test: Save workflow calls backend API
+  - Check: JWT token added to requests
+- [ ] **Dev 2:** All 30 config forms done?
   - Test each form: Fill, validate, save
-- [ ] **Dev 3:** All 16 node types work?
+  - Check: All 16 original + 14 Shopify forms
+- [ ] **Dev 3:** All 30 node types work?
   - Test simple workflow with each type
+  - Test: All Shopify nodes execute correctly
+- [ ] **Dev 4:** Monitoring dashboard complete?
+  - Test: All filters work
+  - Test: Execution details show all steps
+  - Test: Retry works for all failure types
 
 ### Afternoon Check
+- [ ] **Dev 1:** Canvas integration complete?
+  - Test: Save/load workflow from DB
+  - Test: Canvas state syncs with backend
 - [ ] **Dev 2:** Variable insertion works?
   - Test: Click "Insert Variable" → Select variable → {{variable}} inserted
 - [ ] **Dev 2:** Form validation works?
@@ -277,146 +362,207 @@
   - Test: Submit valid form → Success
 - [ ] **Dev 3:** Validation endpoint works?
   - Test: `/workFlow/123/validate` returns errors for incomplete workflow
+  - Test: Detects all error types (unconfigured, orphan, circular, no trigger)
 
 ### End-of-Day Go/No-Go
 **Go if:**
-- ✅ All 16 forms done
-- ✅ All 16 node types work
+- ✅ All 30 forms done
+- ✅ All 30 node types work
 - ✅ Validation works
+- ✅ Monitoring dashboard complete
 
 **No-Go if:**
-- ❌ Forms incomplete → Work over weekend (last resort)
-- ❌ Node types failing → Debug over weekend
+- ❌ Forms incomplete → Critical priority Monday
+- ❌ Node types failing → Debug Monday morning
+- ❌ Major integration issues → Emergency session
 
 **Week 1 Retrospective:**
 - What went well?
 - What was hard?
+- Are we on track for Week 2?
 - Adjust Week 2 plan if needed
 
 ---
 
-## Day 6 (Monday): Validation & Early Integration
+## Day 6 (Monday): Validation & Full Integration
 
 ### Morning Check
-- [ ] **Dev 1 + Dev 3:** Enhanced validation logic done?
-  - Test: `POST /workFlow/123/validate` with incomplete workflow
-  - Check: Returns specific errors (unconfigured nodes, orphan nodes, no trigger)
-  - Test: Validation detects circular dependencies (if implemented)
+- [ ] **Dev 1:** Canvas validation UI done?
+  - Test: Validation highlights problematic nodes
+  - Test: Error tooltips show on invalid nodes
 - [ ] **Dev 2:** ValidationModal component done?
   - Test: Click "Publish" → Modal shows validation results
   - Test: Shows clear error messages with "Highlight node" buttons
+- [ ] **Dev 3:** Enhanced validation logic done?
+  - Test: `POST /workFlow/123/validate` with incomplete workflow
+  - Check: Returns specific errors (unconfigured nodes, orphan nodes, no trigger)
+  - Test: Validation detects circular dependencies
+- [ ] **Dev 4:** Monitoring polling mechanism works?
+  - Test: Execution list auto-refreshes
+  - Check: Configurable refresh interval
 
 ### Afternoon Check
-- [ ] **All Devs:** Early integration testing started?
+- [ ] **All Devs:** Full integration testing started?
   - Test: Create workflow via API with JWT auth
-  - Test: Add steps with real node configs
+  - Test: Add steps with real node configs (all 30 types)
   - Test: Publish workflow after validation passes
+  - Test: Execute published workflow
+  - Test: Monitor execution in dashboard
   - Check: Document any integration issues
-- [ ] **Dev 2:** UI polish improvements?
+- [ ] **Dev 1:** UI polish improvements?
   - Test: Loading states show during API calls
   - Test: Error toasts appear on failures
-  - Test: Validation highlights problematic nodes
+- [ ] **Dev 2:** Config panel polish done?
+  - Test: Smooth transitions between forms
+  - Test: Unsaved changes warning works
 
 ### End-of-Day Go/No-Go
 **Go if:**
-- ✅ Validation catches major workflow issues
+- ✅ Validation catches all workflow issues
 - ✅ ValidationModal provides clear feedback
-- ✅ Basic integration with existing APIs working
+- ✅ Full integration working end-to-end
+- ✅ All 4 devs' work integrates smoothly
 
 **No-Go if:**
 - ❌ Validation not working → Priority: Fix tomorrow
-- ❌ Critical integration issues → Coordinate with team
+- ❌ Critical integration issues → All-hands debugging
+- ❌ Integration bugs between dev areas → Coordinate resolution
 
 **Tomorrow's Focus:**
-- Dev 1: Continue integration & auth
-- Dev 2: Monitoring page
-- Dev 3: Get executions API
+- Dev 1: Publish workflow functionality
+- Dev 2: Final UI polish
+- Dev 3: Execution engine optimization
+- Dev 4: Monitoring performance optimization
 
 ---
 
-## Day 7 (Tuesday): Monitoring Dashboard
+## Day 7 (Tuesday): Publish & Polish
 
 ### Morning Check
-- [ ] **Dev 2:** Monitoring page layout done?
-  - Test: Navigate to `/workflows/123/monitoring`
-  - Test: See table with columns
-- [ ] **Dev 3:** Get executions endpoint works?
-  - Test: `GET /workFlow/123/executions?status=completed`
-  - Check: Returns list of executions
+- [ ] **Dev 1:** Publish workflow works?
+  - Test: Click "Publish" after validation passes
+  - Check: Workflow status changes to "PUBLISHED"
+  - Test: Published workflow appears in workflow list
+- [ ] **Dev 2:** All UI polish complete?
+  - Test: Consistent styling across all components
+  - Test: Responsive design works
+  - Test: Accessibility (keyboard navigation, ARIA labels)
+- [ ] **Dev 3:** Publish endpoint fully integrated?
+  - Test: `POST /workFlow/123/publish`
+  - Check: Workflow becomes executable
+  - Check: Can trigger published workflow
+- [ ] **Dev 4:** Monitoring dashboard polish complete?
+  - Test: Dashboard loads quickly (large datasets)
+  - Test: Export functionality (CSV/JSON) if implemented
+  - Test: Search/filter performance
 
 ### Afternoon Check
-- [ ] **Dev 2:** Execution list loads?
-  - Test: Executions show in table
-  - Test: Filters work (status, date range)
-- [ ] **Dev 2:** Can expand to see details?
-  - Test: Click "View Details" → See step-by-step logs
-- [ ] **Dev 3:** Get details endpoint works?
-  - Test: `GET /execution/abc123`
-  - Check: Returns execution + logs
+- [ ] **Dev 1:** Canvas performance optimized?
+  - Test: Canvas with 50 nodes loads <2 seconds
+  - Test: Drag-drop remains smooth with many nodes
+- [ ] **Dev 2:** Config forms performance optimized?
+  - Test: Form switching is instantaneous
+  - Test: Large forms (many fields) remain responsive
+- [ ] **Dev 3:** Execution engine handles edge cases?
+  - Test: Workflow with 20+ steps executes correctly
+  - Test: Parallel branches execute correctly
+  - Test: Error handling works for all node types
+- [ ] **Dev 4:** Real-time updates work?
+  - Test: Monitoring shows execution progress in real-time
+  - Test: Step status updates without manual refresh
 
 ### End-of-Day Go/No-Go
 **Go if:**
-- ✅ Monitoring page shows executions
-- ✅ Can view details
+- ✅ Publish workflow works end-to-end
+- ✅ All UI polished and performant
+- ✅ Monitoring dashboard complete and optimized
+- ✅ No P0 bugs
 
 **No-Go if:**
-- ❌ Monitoring page broken → Priority: Fix tomorrow
+- ❌ Publish broken → Critical priority tomorrow
+- ❌ Performance issues → Optimization session tomorrow
+- ❌ P0 bugs exist → Fix tomorrow
 
 **Tomorrow's Focus:**
-- Integration with existing APIs
-- JWT auth
+- Multi-tenancy verification
+- Security review
+- E2E testing preparation
 
 ---
 
-## Day 8 (Wednesday): Integration & Auth
+## Day 8 (Wednesday): Security & Multi-tenancy
 
 ### Morning Check
-- [ ] **You:** API integration doc done?
-  - Check: `docs/API_INTEGRATION.md` exists
-  - Check: Dev 2 understands how to call existing APIs
-- [ ] **You:** JWT auth configured?
+- [ ] **You:** Security review completed?
+  - Check: All sensitive data encrypted
+  - Check: No secrets in frontend code
+  - Review: Rate limiting on critical endpoints
+- [ ] **Dev 1:** JWT auth fully integrated?
   - Check: `axiosInstance` adds JWT token to headers
   - Test: API call without token → 401 error
-
-### Afternoon Check
-- [ ] **Dev 2:** Save workflow works?
-  - Test: Create workflow → Click "Save Draft"
-  - Check: Workflow saved to MongoDB (check DB)
-  - Check: Steps saved with correct data
-- [ ] **Dev 2:** Publish workflow works?
-  - Test: Click "Publish" → Workflow status changes to "PUBLISHED"
+  - Test: Token refresh works
+- [ ] **Dev 2:** XSS prevention in place?
+  - Check: All user input sanitized
+  - Test: Config forms handle malicious input safely
 - [ ] **Dev 3:** Multi-tenancy works?
   - Test: User A cannot see User B's workflows
   - Check: All queries filter by `orgId` and `userId`
+  - Test: Workflow execution isolated per tenant
+- [ ] **Dev 4:** Monitoring respects multi-tenancy?
+  - Test: Users only see their own executions
+  - Test: Admin users see all executions (if applicable)
+
+### Afternoon Check
+- [ ] **All Devs:** E2E test suite written?
+  - Check: `e2e/workflow-builder.spec.ts` exists
+  - Test cases cover: Create, Configure, Validate, Publish, Execute, Monitor
+  - Test cases for all 30 node types
+- [ ] **Dev 1:** Canvas saves/loads correctly?
+  - Test: Save workflow → Reload page → Canvas restored
+  - Test: Node positions preserved
+- [ ] **Dev 2:** Config data persists correctly?
+  - Test: Configure node → Save → Reload → Config restored
+- [ ] **Dev 3:** Execution logs secure?
+  - Check: Sensitive data not logged (passwords, tokens)
+  - Test: Logs include necessary debug info
 
 ### End-of-Day Go/No-Go
 **Go if:**
-- ✅ Integration works
 - ✅ JWT auth works
-- ✅ Multi-tenancy secure
+- ✅ Multi-tenancy secure and verified
+- ✅ E2E test suite written
+- ✅ No security vulnerabilities
 
 **No-Go if:**
-- ❌ Integration failing → Priority: Debug tomorrow
 - ❌ Multi-tenancy broken → CRITICAL, fix immediately
+- ❌ Auth failing → Priority: Debug tonight/tomorrow
+- ❌ Security issues found → Fix before proceeding
 
 **Tomorrow's Focus:**
-- E2E testing
+- Run E2E tests
 - Bug fixing
+- Performance verification
 
 ---
 
-## Day 9 (Thursday): E2E Testing & Bugs
+## Day 9 (Thursday): E2E Testing & Bug Fixing
 
 ### Morning Check
-- [ ] **You:** E2E test written?
-  - Check: `e2e/workflow-builder.spec.ts` exists
+- [ ] **You:** E2E test suite ready?
+  - Check: `e2e/workflow-builder.spec.ts` complete
   - Run: `npx playwright test`
-  - Check: Test passes or fails with clear errors
+  - Check: All test scenarios covered
+- [ ] **All Devs:** Run E2E tests in parallel?
+  - Dev 1: Run canvas-focused E2E tests
+  - Dev 2: Run node/config-focused E2E tests
+  - Dev 3: Run execution-focused E2E tests
+  - Dev 4: Run monitoring-focused E2E tests
 
 ### Afternoon Check
-- [ ] **All:** E2E test passes?
-  - Test: Complete user journey (create → validate → publish → monitor)
-  - If fails → Debug together
+- [ ] **All:** E2E tests pass?
+  - Test: Complete user journey (create → configure → validate → publish → execute → monitor)
+  - Test: All 30 node types work in workflows
+  - If fails → Debug together, fix immediately
 
 ### Bug Triage (Continuous)
 **For Each Bug:**
@@ -424,53 +570,98 @@
   - **P0 (Critical):** Blocks core functionality → Fix today
   - **P1 (High):** Major issue, workaround exists → Fix tomorrow
   - **P2 (Medium):** Minor issue → Post-MVP
-- Assign to dev
+- Assign to appropriate dev based on area
 - Set deadline
 
 **Common Bugs & Fixes:**
-- "Canvas crashes on drop" → Check nodeTypes mapping
-- "API returns 500" → Check payload format, check logs
-- "Validation errors not showing" → Check API response format
-- "Config not saving" → Check Zustand state update
+- "Canvas crashes on drop" → Dev 1: Check nodeTypes mapping
+- "API returns 500" → Dev 3: Check payload format, check logs
+- "Validation errors not showing" → Dev 1/3: Check API response format
+- "Config not saving" → Dev 2: Check Zustand state update
+- "Shopify nodes not executing" → Dev 3: Check Shopify API integration
+- "Monitoring not showing logs" → Dev 4: Check logs fetching logic
+
+### All-Hands Bug Bash (2-4 PM)
+- [ ] **All Devs:** Test everything manually
+  - Create workflows with different node combinations
+  - Test edge cases and error scenarios
+  - Document all found bugs with reproduction steps
+- [ ] **You:** Prioritize and assign bugs
+  - Critical bugs assigned immediately
+  - Non-critical bugs deferred or assigned for tomorrow
 
 ### End-of-Day Go/No-Go
 **Go if:**
 - ✅ E2E test passes
 - ✅ Zero P0 bugs
+- ✅ <5 P1 bugs (fixable tomorrow)
 
 **No-Go if:**
-- ❌ E2E test fails → Fix tomorrow
-- ❌ P0 bugs exist → Fix tomorrow
+- ❌ E2E test fails on critical path → Fix tonight/early tomorrow
+- ❌ Multiple P0 bugs exist → Emergency session
 
 **Tomorrow's Focus:**
-- Final polish
-- Performance check
-- Deploy
+- Fix remaining P1 bugs
+- Performance verification
+- Deploy to staging
+- Demo preparation
 
 ---
 
 ## Day 10 (Friday): Deploy & Demo
 
-### Morning Check
+### Morning Check (Bug Fixes)
+- [ ] **All Devs:** P1 bugs fixed?
+  - Dev 1: Canvas/UX bugs resolved
+  - Dev 2: Node/Config bugs resolved
+  - Dev 3: Execution engine bugs resolved
+  - Dev 4: Monitoring bugs resolved
 - [ ] **All:** Final testing done?
-  - Test: All 16 node types work
-  - Test: Complete workflows execute
+  - Test: All 30 node types work
+  - Test: Complete workflows execute (including Shopify nodes)
   - Test: Monitoring shows correct data
+  - Test: Multi-tenancy verified
 
-### Afternoon Check
-- [ ] **You:** Performance acceptable?
+### Performance Verification (10-11 AM)
+- [ ] **You & Dev 1:** Canvas performance acceptable?
   - Test: Canvas with 50 nodes loads <2 seconds
+  - Test: Drag-drop remains smooth
+  - Test: Connection rendering performant
+- [ ] **You & Dev 3:** API performance acceptable?
   - Test: API responses <500ms (without LLM)
+  - Test: Execution engine handles concurrent workflows
+  - Test: Database queries optimized
+- [ ] **You & Dev 4:** Monitoring performance acceptable?
+  - Test: Dashboard loads with 1000+ executions
+  - Test: Filtering/search responsive
+
+### Deploy to Staging (11 AM - 12 PM)
 - [ ] **You:** Deployed to staging?
   - Check: Staging URL works
   - Test: Smoke test all endpoints
+  - Verify: Environment variables correct
+  - Verify: Database connected
+  - Verify: All services running (BotCore, Voice, Shopify integration)
 
-### Demo Preparation (4:00 PM)
-- [ ] Demo workflow created
-- [ ] Demo script written
-- [ ] Screenshots/recording prepared
+### Demo Preparation (2:00 PM - 4:00 PM)
+- [ ] **You:** Demo workflows created?
+  - Workflow 1: WhatsApp → Conversational Agent → Send WhatsApp (simple)
+  - Workflow 2: Shopify Order Created → Decision Agent → Create Order → Send WhatsApp (complex)
+  - Workflow 3: Multi-step workflow showing all node categories
+- [ ] **You:** Demo script written?
+  - Introduction (30 sec)
+  - Canvas demo (2 min): Drag-drop, connect nodes
+  - Configuration demo (2 min): Configure 3-4 different node types
+  - Validation demo (1 min): Show validation catching errors
+  - Publish & Execute (2 min): Publish workflow, trigger execution
+  - Monitoring demo (2 min): View execution logs, show retry
+  - Q&A (5 min)
+- [ ] **Dev 1:** Screenshots/recording prepared?
+  - Record screen capture of demo flow
+  - Take screenshots of key features
+  - Prepare backup demo (in case live demo fails)
 
-### End-of-Sprint Retrospective (5:00 PM)
+### End-of-Sprint Retrospective (4:30 PM)
 
 **What went well?**
 - ___________________________________________
@@ -523,7 +714,7 @@
 
 ## Unblocking Strategies
 
-### If Dev 2 (Frontend) Stuck:
+### If Dev 1 (Canvas & UX) Stuck:
 
 **Common Issues:**
 1. **"React Flow not working"**
@@ -531,23 +722,49 @@
    - Check: `nodeTypes` object correct
    - Check: Nodes have `type` field matching `nodeTypes` key
 
-2. **"Config form not saving"**
-   - Check: `onSave` prop passed correctly
-   - Check: Zustand state updated
-   - Check: Node `data.config` field
+2. **"Connection validation not working"**
+   - Check: `isValidConnection` function logic
+   - Check: Handle types match expected values
+   - Check: Edge validation rules correct
 
-3. **"Styles not working"**
-   - Check: Tailwind CSS configured
-   - Check: Classes correct (no typos)
+3. **"Canvas state not persisting"**
+   - Check: Zustand store configured correctly
+   - Check: State updates trigger re-render
+   - Check: Save/load logic correct
 
 **Solution:**
 - Pair for 30 min
 - Share screen, walk through code
-- Point to working example
+- Point to React Flow docs/examples
 
 ---
 
-### If Dev 3 (Backend) Stuck:
+### If Dev 2 (Nodes & Config) Stuck:
+
+**Common Issues:**
+1. **"Config form not saving"**
+   - Check: `onSave` prop passed correctly
+   - Check: Zustand state updated
+   - Check: Node `data.config` field structure
+
+2. **"Form validation not working"**
+   - Check: Yup schema defined correctly
+   - Check: Form validation triggered on submit
+   - Check: Error messages displayed
+
+3. **"Too many forms, falling behind"**
+   - Solution: Create reusable form components
+   - Use form templates/generators
+   - Prioritize most common node types first
+
+**Solution:**
+- Pair for 30 min
+- Share reusable component patterns
+- Help create form templates
+
+---
+
+### If Dev 3 (Execution Engine) Stuck:
 
 **Common Issues:**
 1. **"API returns 500"**
@@ -560,10 +777,15 @@
    - Check: Request format matches BotCore API
    - Check: Response format parsed correctly
 
-3. **"Tests failing"**
-   - Read error message carefully
-   - Check: Test data correct
-   - Check: Mocks configured
+3. **"Shopify integration not working"**
+   - Check: Shopify API credentials configured
+   - Check: Webhook endpoints registered
+   - Check: API version compatibility
+
+4. **"Workflow execution stuck"**
+   - Check: Step executor handling all node types
+   - Check: Context passing between steps
+   - Check: Error handling doesn't block execution
 
 **Solution:**
 - Check logs together
@@ -572,29 +794,65 @@
 
 ---
 
+### If Dev 4 (Monitoring) Stuck:
+
+**Common Issues:**
+1. **"Execution list not loading"**
+   - Check: API endpoint returning data
+   - Check: Response format matches expected structure
+   - Check: Table component configured correctly
+
+2. **"Filters not working"**
+   - Check: Query parameters sent correctly
+   - Check: Backend filtering logic working
+   - Check: State management for filter values
+
+3. **"Real-time updates not working"**
+   - Check: Polling interval configured
+   - Check: API called on interval
+   - Check: State updates trigger re-render
+
+**Solution:**
+- Pair for 30 min
+- Test API responses with browser dev tools
+- Review state management logic
+
+---
+
 ## Risk Management
 
 ### High-Risk Areas (Monitor Daily)
 
-**1. React Flow Integration**
-- **Risk:** Unfamiliar API
-- **Mitigation:** Dev 2 spends extra time on docs, you pair if stuck
-- **Check Daily:** Canvas works, drag-drop works, connections work
+**1. React Flow Integration (Dev 1)**
+- **Risk:** Unfamiliar API, complex canvas state management
+- **Mitigation:** Dev 1 spends extra time on docs, you pair if stuck
+- **Check Daily:** Canvas works, drag-drop works, connections work, state persists
 
-**2. Execution Engine Complexity**
-- **Risk:** Sequential execution with context passing is complex
-- **Mitigation:** Clear architecture, TDD, frequent testing
-- **Check Daily:** Execute simple workflow, check logs
+**2. Execution Engine Complexity (Dev 3)**
+- **Risk:** Sequential execution with context passing is complex, 30 node types to handle
+- **Mitigation:** Clear architecture, TDD, frequent testing, incremental implementation
+- **Check Daily:** Execute simple workflow, check logs, verify Shopify integrations
 
-**3. 16 Config Forms**
-- **Risk:** Lots of repetitive work
-- **Mitigation:** Reuse components, use templates
-- **Check Daily:** Count completed forms, adjust if falling behind
+**3. 30 Config Forms (Dev 2 - HIGHEST RISK)**
+- **Risk:** MASSIVE amount of repetitive work (110 hours estimated)
+- **Mitigation:** Reuse components aggressively, use templates, form generators
+- **Check Daily:** Count completed forms (target: 6 per day), adjust if falling behind
+- **Contingency:** If Dev 2 falls >2 days behind, Dev 1 helps with simpler forms
 
-**4. Integration with Existing APIs**
-- **Risk:** Undocumented quirks
-- **Mitigation:** Document early, test early
-- **Check Daily:** Save/load works, data persists correctly
+**4. Integration Coordination (All Devs)**
+- **Risk:** 4 devs working on tightly coupled system, integration issues
+- **Mitigation:** Daily integration checks, clear API contracts, frequent communication
+- **Check Daily:** All components integrate smoothly, no breaking changes
+
+**5. Shopify Integration (Dev 3)**
+- **Risk:** External API dependencies, webhook setup, authentication
+- **Mitigation:** Leverage existing Shopify service, test with Shopify test environment
+- **Check Daily:** Shopify nodes execute correctly, webhooks received
+
+**6. Monitoring Performance (Dev 4)**
+- **Risk:** Large datasets, real-time updates may cause performance issues
+- **Mitigation:** Pagination, lazy loading, optimized queries
+- **Check Daily:** Dashboard loads quickly with sample data
 
 ---
 
@@ -629,18 +887,26 @@
 ## Success Indicators (Check Weekly)
 
 ### Week 1 (End of Day 5)
-- [ ] ✅ Canvas works (drag-drop, connections)
-- [ ] ✅ All 16 config forms done
-- [ ] ✅ All 16 node types implemented
+- [ ] ✅ Canvas works (drag-drop, connections, state management)
+- [ ] ✅ All 30 config forms done (16 original + 14 Shopify)
+- [ ] ✅ All 30 node types implemented in execution engine
+- [ ] ✅ All 30 node components render on canvas
+- [ ] ✅ Monitoring dashboard basic functionality works
 - [ ] ✅ Simple workflow executes end-to-end
 
-**If not achieved:** Adjust Week 2 plan, cut nice-to-haves
+**If not achieved:**
+- If <25 forms done: Dev 1 helps Dev 2 with remaining forms
+- If execution engine incomplete: Prioritize most common node types
+- Adjust Week 2 plan, cut nice-to-haves (variable insertion, advanced validation)
 
 ### Week 2 (End of Day 10)
-- [ ] ✅ Validation works
-- [ ] ✅ Monitoring dashboard works
-- [ ] ✅ Integration with existing APIs works
-- [ ] ✅ E2E test passes
+- [ ] ✅ Validation works (catches all error types)
+- [ ] ✅ Monitoring dashboard complete with all features
+- [ ] ✅ Integration with existing APIs works (JWT, multi-tenancy)
+- [ ] ✅ All 30 node types work in real workflows
+- [ ] ✅ Shopify integration verified (triggers and actions)
+- [ ] ✅ E2E test passes (covers all major flows)
+- [ ] ✅ Performance acceptable (canvas <2s, API <500ms)
 - [ ] ✅ Deployed to staging
 - [ ] ✅ Demo-ready
 
@@ -725,19 +991,21 @@ Status: 🟢 On track for 2-week delivery
 
 ### MVP Acceptance Criteria
 - [ ] User can create new workflow
-- [ ] User can drag all 16 node types onto canvas
-- [ ] User can connect nodes visually
-- [ ] User can configure each node type
+- [ ] User can drag all 30 node types onto canvas (16 original + 14 Shopify)
+- [ ] User can connect nodes visually with validation
+- [ ] User can configure each node type (all 30 forms work)
 - [ ] User can save workflow (persists to DB)
-- [ ] User can validate workflow before publish
+- [ ] User can validate workflow before publish (catches all error types)
 - [ ] User can publish workflow
 - [ ] User can monitor executions with step-by-step logs
 - [ ] User can retry failed executions
-- [ ] Workflows execute correctly for all 16 node types
+- [ ] Workflows execute correctly for all 30 node types
+- [ ] Shopify nodes work (5 triggers + 9 actions)
 - [ ] Canvas renders <2 seconds for 50 nodes
 - [ ] API responses <500ms (without LLM)
-- [ ] Multi-tenant isolation verified
-- [ ] E2E test passes
+- [ ] Multi-tenant isolation verified (users can't see each other's workflows)
+- [ ] JWT authentication works
+- [ ] E2E test passes (covers all major flows)
 - [ ] Deployed to staging
 - [ ] Demo prepared
 

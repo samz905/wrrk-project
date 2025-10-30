@@ -1273,6 +1273,12 @@ this.server
 | WhatsApp Message | `trigger_whatsapp` | `trigger` | N/A (passive) | Webhook |
 | Email Received | `trigger_email` | `trigger` | N/A | Webhook |
 | Voice Call | `trigger_voice` | `trigger` | N/A | Webhook |
+| **Shopify Triggers** |
+| Shopify Order Created | `trigger_shopify_order_created` | `trigger` | POST /shopify/webhook/order-created | Consumer |
+| Shopify Order Fulfilled | `trigger_shopify_order_fulfilled` | `trigger` | POST /shopify/webhook/order-fullfilment | Consumer |
+| Shopify Order Delivered | `trigger_shopify_order_delivered` | `trigger` | POST /shopify/webhook/order-fullfilment | Consumer |
+| Shopify Order Cancelled | `trigger_shopify_order_cancelled` | `trigger` | POST /shopify/webhook/order-cancel | Consumer |
+| Shopify Time Reminder | `trigger_shopify_time_reminder` | `trigger` | Cron-based (1hr/6hr/12hr/18hr) | Cron Service |
 | **Agents** |
 | Conversational | `agent_conversational` | `agent` | POST /qna | BotCore |
 | Decision | `agent_decision` | `agent` | POST /qna (Decorpot) | BotCore |
@@ -1282,6 +1288,16 @@ this.server
 | Send Email | `action_email` | `action` | MailService.sendMail() | Consumer |
 | Initiate Call | `action_call` | `action` | POST /twilio/outbound-call | BW_VOICE |
 | Update CRM | `action_crm` | `action` | Decorpot/Shopify APIs | Consumer |
+| **Shopify Actions** |
+| Shopify Get Product Details | `action_shopify_get_product` | `action` | Shopify API: GET /products/{id} | BotCore Tool |
+| Shopify Get All Products | `action_shopify_get_all_products` | `action` | Shopify API: GET /products.json | BotCore Tool |
+| Shopify Get Order Details | `action_shopify_get_order` | `action` | Shopify API: GET /orders.json | BotCore Tool |
+| Shopify Authenticate Customer | `action_shopify_auth_customer` | `action` | Shopify API: GET /customers.json | BotCore Tool |
+| Shopify Get Shop Info | `action_shopify_get_shop` | `action` | Shopify API: GET /shop.json | BotCore Tool |
+| Shopify Create Order | `action_shopify_create_order` | `action` | Shopify API: POST /orders.json | Consumer Service |
+| Shopify Confirm Order | `action_shopify_confirm_order` | `action` | ShopifyService.confirmOrder() | Consumer Service |
+| Shopify Cancel Order | `action_shopify_cancel_order` | `action` | Shopify API: POST /orders/{id}/cancel | BotCore Tool |
+| Shopify Update Address | `action_shopify_update_address` | `action` | Shopify API: PUT /orders/{id} | BotCore Tool |
 | **Utilities** |
 | Text Generator | `utility_text_gen` | `utility` | POST /generate-answer | BotCore |
 | Sentiment Calc | `utility_sentiment` | `utility` | POST /sentiment-analysis | BotCore |
@@ -1333,6 +1349,82 @@ this.server
     }
   },
   position: { x: 600, y: 200 }
+}
+
+// Example: Shopify Order Created Trigger
+{
+  nodeId: "node_ghi789",
+  nodeType: "trigger",
+  config: {
+    triggerType: "shopify_order_created",
+    shopifyAccount: "nitakitchenmart",
+    orderTypes: ["COD", "Online"], // Filter by payment type
+    minOrderValue: 0, // Optional filter
+    autoConfirm: false // Whether to auto-confirm COD orders
+  },
+  position: { x: 100, y: 100 },
+  outputs: [
+    { id: "default", label: "Order Received" }
+  ]
+}
+
+// Example: Shopify Get Product Details Action
+{
+  nodeId: "node_jkl012",
+  nodeType: "action",
+  config: {
+    actionType: "shopify_get_product",
+    shopifyAccount: "nitakitchenmart",
+    productId: "{{product_id}}", // Use variable from previous step
+    includeInventory: true,
+    includeImages: true
+  },
+  position: { x: 400, y: 300 }
+}
+
+// Example: Shopify Create Order Action
+{
+  nodeId: "node_mno345",
+  nodeType: "action",
+  config: {
+    actionType: "shopify_create_order",
+    shopifyAccount: "nitakitchenmart",
+    customer: {
+      email: "{{customer_email}}",
+      firstName: "{{customer_first_name}}",
+      lastName: "{{customer_last_name}}",
+      phone: "{{customer_phone}}"
+    },
+    lineItems: [
+      {
+        productId: "{{product_id}}",
+        quantity: "{{quantity}}"
+      }
+    ],
+    shippingAddress: {
+      address: "{{shipping_address}}",
+      city: "{{shipping_city}}",
+      state: "{{shipping_state}}",
+      zipcode: "{{shipping_zip}}"
+    },
+    paymentGateway: "cod" // or "online"
+  },
+  position: { x: 700, y: 300 }
+}
+
+// Example: Shopify Time-based Reminder Trigger
+{
+  nodeId: "node_pqr678",
+  nodeType: "trigger",
+  config: {
+    triggerType: "shopify_time_reminder",
+    shopifyAccount: "nitakitchenmart",
+    reminderType: "first", // "first" | "second" | "final" | "auto_cancel"
+    delayAfterOrder: 60, // minutes (1hr for first reminder)
+    orderStatus: "draft", // Only for draft orders
+    orderType: "COD" // Only for COD orders
+  },
+  position: { x: 100, y: 400 }
 }
 ```
 

@@ -1,55 +1,60 @@
-# Dev 1 (Lead Developer) - Action Plan
+# Dev 1: Canvas & UX - Instruction Manual
 
-**Role:** Lead Developer, Architecture, Critical Path, Code Review
-**Total Time:** 45 hours over 10 days (4-5h/day)
-**Focus:** Architecture decisions, unblocking team, code review, critical integrations
-
----
-
-## Your Responsibilities
-
-1. ✅ **Architecture & Technical Decisions**
-2. ✅ **Critical Path Implementation** (React Flow setup, execution engine foundation)
-3. ✅ **Code Review** (all PRs)
-4. ✅ **Integration** (JWT auth, existing APIs)
-5. ✅ **E2E Testing**
-6. ✅ **Unblocking Team**
+**Your Role:** Canvas & User Experience Specialist
+**Responsibility:** Build and polish the visual workflow canvas using React Flow
+**Scope:** Drag-drop functionality, node connections, canvas controls, visual feedback, state management
 
 ---
 
-## Day 1: Project Setup & Architecture (Monday)
+## Overview
 
-**Time:** 4 hours
-**Goal:** Set up foundation, define schemas, review with team
+You are responsible for creating the visual canvas where users build their workflows. Your work is the foundation that Dev 2 (nodes), Dev 3 (execution), and Dev 4 (monitoring) will integrate with. The canvas must be intuitive, performant, and support 30 different node types.
 
-### Morning (2h): Project Setup
+**Key Technologies:**
+- **React Flow** (@xyflow/react) - Visual canvas library
+- **Zustand** - State management for canvas state
+- **TypeScript** - Type safety
+- **Tailwind CSS** - Styling
+- **React Hook Form** + **Yup** - Form handling (where needed)
 
-#### Task 1.1: Create Frontend Project Structure (30 min)
+---
+
+## Prerequisites
+
+Before you start building, make sure these are in place:
+
+### 1. Project Structure Setup
 ```bash
 cd BW_FE_Application
 
-# Create new workflow builder folder structure
+# Create folder structure
 mkdir -p src/pages/workflow
 mkdir -p src/components/workflow/canvas
-mkdir -p src/components/workflow/nodes
-mkdir -p src/components/workflow/config
-mkdir -p src/components/workflow/test
-mkdir -p src/components/monitoring
-mkdir -p src/store
+mkdir -p src/store/workflow
 mkdir -p src/hooks
-mkdir -p src/api/services
 mkdir -p src/types
+mkdir -p src/utils
 ```
 
-**Files to create:**
+### 2. Install Dependencies
+```bash
+npm install @xyflow/react
+npm install zustand
+npm install react-toastify  # For notifications
+```
+
+### 3. Core Type Definitions
+
+Create `src/types/workflow.types.ts`:
+
 ```typescript
-// src/types/workflow.types.ts
 export interface WorkflowNode {
   id: string;
   type: 'trigger' | 'agent' | 'action' | 'utility';
   position: { x: number; y: number };
   data: {
     label: string;
+    nodeType: string; // e.g., 'trigger_whatsapp', 'action_shopify_create_order'
     config: Record<string, any>;
     configured: boolean;
   };
@@ -64,7 +69,7 @@ export interface WorkflowEdge {
 }
 
 export interface Workflow {
-  id: string;
+  id?: string;
   name: string;
   nodes: WorkflowNode[];
   edges: WorkflowEdge[];
@@ -74,485 +79,44 @@ export interface Workflow {
 }
 ```
 
-**Test:** Can you import these types without errors?
-
 ---
 
-#### Task 1.2: Document Execution Flow (1h)
+## Part 1: React Flow Canvas Setup
 
-Create architecture doc:
+### What It Is
+The canvas is the main drawing area where users drag nodes and connect them. It uses React Flow library which provides pan, zoom, and connection functionality out of the box.
 
-```markdown
-// docs/EXECUTION_FLOW.md
+### How to Build It
 
-## Workflow Execution Flow
+#### Step 1.1: Create the Canvas Component
 
-1. User triggers workflow (e.g., WhatsApp message received)
-2. POST /workFlow/:id/execute with triggerData
-3. ExecutionEngine.executeWorkflow():
-   - Load workflow + all steps from DB
-   - Create execution record
-   - Loop through steps:
-     a. Load step
-     b. Execute via StepExecutor
-     c. Log result
-     d. Pass output to context for next step
-     e. Move to nextStepId
-4. Mark execution complete/failed
-5. Return execution result
-
-## Context Passing
-- Each step output becomes input for next step
-- Context = { ...triggerData, ...step1Output, ...step2Output }
-- Variables replaced: {{phone_number}} → actual value from context
-```
-
-**Test:** Review with Dev 3, answer questions
-
----
-
-### Afternoon (2h): Node Configuration Schemas
-
-#### Task 1.3: Define All 16 Node Config Schemas (2h)
-
-Create comprehensive schema file:
+Create `src/components/workflow/canvas/WorkflowCanvas.tsx`:
 
 ```typescript
-// src/config/nodeSchemas.ts
-
-export interface NodeConfigSchema {
-  nodeType: string;
-  fields: ConfigField[];
-}
-
-export interface ConfigField {
-  name: string;
-  label: string;
-  type: 'text' | 'textarea' | 'select' | 'checkbox' | 'file';
-  required: boolean;
-  placeholder?: string;
-  options?: { label: string; value: string }[];
-  validation?: any; // Yup schema
-}
-
-// TRIGGERS
-
-export const whatsappTriggerSchema: NodeConfigSchema = {
-  nodeType: 'trigger_whatsapp',
-  fields: [
-    {
-      name: 'accountId',
-      label: 'WhatsApp Account',
-      type: 'select',
-      required: true,
-      options: [], // Populated from API
-    },
-    {
-      name: 'keywordMatch',
-      label: 'Keyword Match',
-      type: 'text',
-      required: false,
-      placeholder: 'e.g., "help", "support"',
-    },
-    {
-      name: 'conditions',
-      label: 'Trigger Conditions',
-      type: 'checkbox',
-      required: false,
-    },
-  ],
-};
-
-export const emailTriggerSchema: NodeConfigSchema = {
-  nodeType: 'trigger_email',
-  fields: [
-    {
-      name: 'emailAccount',
-      label: 'Email Account',
-      type: 'select',
-      required: true,
-      options: [],
-    },
-    {
-      name: 'subjectContains',
-      label: 'Subject Contains',
-      type: 'text',
-      required: false,
-    },
-    {
-      name: 'fromAddress',
-      label: 'From Address',
-      type: 'text',
-      required: false,
-    },
-  ],
-};
-
-export const voiceTriggerSchema: NodeConfigSchema = {
-  nodeType: 'trigger_voice',
-  fields: [
-    {
-      name: 'phoneNumber',
-      label: 'Phone Number',
-      type: 'select',
-      required: true,
-      options: [],
-    },
-    {
-      name: 'businessHoursOnly',
-      label: 'Business Hours Only',
-      type: 'checkbox',
-      required: false,
-    },
-  ],
-};
-
-// AGENTS
-
-export const conversationalAgentSchema: NodeConfigSchema = {
-  nodeType: 'agent_conversational',
-  fields: [
-    {
-      name: 'systemPrompt',
-      label: 'System Prompt',
-      type: 'textarea',
-      required: true,
-      placeholder: 'You are a helpful assistant...',
-    },
-    {
-      name: 'memoryContext',
-      label: 'Knowledge Base',
-      type: 'select',
-      required: false,
-      options: [],
-    },
-    {
-      name: 'responseFormat',
-      label: 'Response Format',
-      type: 'select',
-      required: true,
-      options: [
-        { label: 'Freeform Text', value: 'text' },
-        { label: 'Structured JSON', value: 'json' },
-      ],
-    },
-  ],
-};
-
-export const decisionAgentSchema: NodeConfigSchema = {
-  nodeType: 'agent_decision',
-  fields: [
-    {
-      name: 'systemPrompt',
-      label: 'System Prompt',
-      type: 'textarea',
-      required: true,
-      placeholder: 'Analyze the customer intent and decide...',
-    },
-    {
-      name: 'memoryContext',
-      label: 'Knowledge Base',
-      type: 'select',
-      required: false,
-      options: [],
-    },
-    // Decision has fixed outputs: Approve, Reject, Review
-  ],
-};
-
-export const reasoningAgentSchema: NodeConfigSchema = {
-  nodeType: 'agent_reasoning',
-  fields: [
-    {
-      name: 'systemPrompt',
-      label: 'System Prompt',
-      type: 'textarea',
-      required: true,
-    },
-    {
-      name: 'memoryContext',
-      label: 'Knowledge Base',
-      type: 'select',
-      required: false,
-      options: [],
-    },
-  ],
-};
-
-// ACTIONS
-
-export const sendWhatsAppSchema: NodeConfigSchema = {
-  nodeType: 'action_whatsapp',
-  fields: [
-    {
-      name: 'messageTemplate',
-      label: 'Message Template',
-      type: 'textarea',
-      required: true,
-      placeholder: 'Hi {{customer_name}}, thanks for your interest...',
-    },
-    {
-      name: 'recipient',
-      label: 'Recipient',
-      type: 'select',
-      required: true,
-      options: [
-        { label: 'Use Trigger Phone Number', value: 'trigger' },
-        { label: 'Custom', value: 'custom' },
-      ],
-    },
-    {
-      name: 'customRecipient',
-      label: 'Custom Phone Number',
-      type: 'text',
-      required: false,
-    },
-  ],
-};
-
-export const sendEmailSchema: NodeConfigSchema = {
-  nodeType: 'action_email',
-  fields: [
-    {
-      name: 'to',
-      label: 'To',
-      type: 'text',
-      required: true,
-    },
-    {
-      name: 'subject',
-      label: 'Subject',
-      type: 'text',
-      required: true,
-    },
-    {
-      name: 'body',
-      label: 'Body',
-      type: 'textarea',
-      required: true,
-    },
-  ],
-};
-
-export const initiateCallSchema: NodeConfigSchema = {
-  nodeType: 'action_call',
-  fields: [
-    {
-      name: 'voiceAgent',
-      label: 'Voice Agent',
-      type: 'select',
-      required: true,
-      options: [],
-    },
-    {
-      name: 'phoneNumber',
-      label: 'Phone Number',
-      type: 'text',
-      required: true,
-      placeholder: '{{phone_number}} or +1234567890',
-    },
-  ],
-};
-
-export const updateCRMSchema: NodeConfigSchema = {
-  nodeType: 'action_crm',
-  fields: [
-    {
-      name: 'crmSystem',
-      label: 'CRM System',
-      type: 'select',
-      required: true,
-      options: [
-        { label: 'Decorpot', value: 'decorpot' },
-        { label: 'Shopify', value: 'shopify' },
-        { label: 'Salesforce', value: 'salesforce' },
-      ],
-    },
-    {
-      name: 'action',
-      label: 'Action',
-      type: 'select',
-      required: true,
-      options: [
-        { label: 'Create', value: 'create' },
-        { label: 'Update', value: 'update' },
-      ],
-    },
-    {
-      name: 'fields',
-      label: 'Fields (JSON)',
-      type: 'textarea',
-      required: true,
-      placeholder: '{"leadStatus": "Real", "notes": "..."}',
-    },
-  ],
-};
-
-// UTILITIES
-
-export const textGeneratorSchema: NodeConfigSchema = {
-  nodeType: 'utility_text_gen',
-  fields: [
-    {
-      name: 'systemPrompt',
-      label: 'System Prompt',
-      type: 'textarea',
-      required: true,
-      placeholder: 'Generate a personalized response...',
-    },
-    {
-      name: 'temperature',
-      label: 'Temperature',
-      type: 'text',
-      required: false,
-      placeholder: '0.7',
-    },
-  ],
-};
-
-export const sentimentCalcSchema: NodeConfigSchema = {
-  nodeType: 'utility_sentiment',
-  fields: [
-    {
-      name: 'inputText',
-      label: 'Input Text',
-      type: 'text',
-      required: true,
-      placeholder: '{{message_text}}',
-    },
-  ],
-};
-
-export const intentCalcSchema: NodeConfigSchema = {
-  nodeType: 'utility_intent',
-  fields: [
-    {
-      name: 'inputText',
-      label: 'Input Text',
-      type: 'text',
-      required: true,
-      placeholder: '{{message_text}}',
-    },
-  ],
-};
-
-export const vulnScannerSchema: NodeConfigSchema = {
-  nodeType: 'utility_vulnerability',
-  fields: [
-    {
-      name: 'inputText',
-      label: 'Input Text',
-      type: 'text',
-      required: true,
-      placeholder: '{{message_text}}',
-    },
-  ],
-};
-
-export const reasonAnalyzerSchema: NodeConfigSchema = {
-  nodeType: 'utility_reason',
-  fields: [
-    {
-      name: 'inputText',
-      label: 'Input Text',
-      type: 'text',
-      required: true,
-      placeholder: '{{message_text}}',
-    },
-  ],
-};
-
-export const customAIUtilitySchema: NodeConfigSchema = {
-  nodeType: 'utility_custom',
-  fields: [
-    {
-      name: 'systemPrompt',
-      label: 'System Prompt',
-      type: 'textarea',
-      required: true,
-    },
-    {
-      name: 'temperature',
-      label: 'Temperature',
-      type: 'text',
-      required: false,
-    },
-  ],
-};
-
-// Export all schemas
-export const nodeSchemas = {
-  trigger_whatsapp: whatsappTriggerSchema,
-  trigger_email: emailTriggerSchema,
-  trigger_voice: voiceTriggerSchema,
-  agent_conversational: conversationalAgentSchema,
-  agent_decision: decisionAgentSchema,
-  agent_reasoning: reasoningAgentSchema,
-  action_whatsapp: sendWhatsAppSchema,
-  action_email: sendEmailSchema,
-  action_call: initiateCallSchema,
-  action_crm: updateCRMSchema,
-  utility_text_gen: textGeneratorSchema,
-  utility_sentiment: sentimentCalcSchema,
-  utility_intent: intentCalcSchema,
-  utility_vulnerability: vulnScannerSchema,
-  utility_reason: reasonAnalyzerSchema,
-  utility_custom: customAIUtilitySchema,
-};
-```
-
-**Test:** Share with Dev 2, confirm they understand the schema structure
-
-**End of Day 1 Check:**
-- [ ] Folder structure created
-- [ ] Type definitions exist
-- [ ] Node schemas documented
-- [ ] Dev 3 understands execution flow
-- [ ] Dev 2 has schemas for config forms
-
----
-
-## Day 2: React Flow Setup & Code Review (Tuesday)
-
-**Time:** 4 hours
-**Goal:** Help Dev 2 set up React Flow, review their work
-
-### Morning (2h): React Flow Setup Support
-
-#### Task 2.1: Review React Flow Docs with Dev 2 (1h)
-
-**Key Resources:**
-- https://reactflow.dev/learn/getting-started/quickstart
-- https://reactflow.dev/examples
-
-**What to review:**
-- Basic canvas setup
-- Custom node types
-- Connection validation
-- State management
-
-#### Task 2.2: Pair Program Canvas Setup (1h)
-
-Help Dev 2 create WorkflowCanvas.tsx:
-
-```typescript
-// src/components/workflow/canvas/WorkflowCanvas.tsx
+import { useCallback, useState } from 'react';
 import ReactFlow, {
   Background,
   Controls,
+  MiniMap,
+  Node,
+  Edge,
+  Connection,
+  addEdge,
   useNodesState,
   useEdgesState,
-  Connection,
-  Edge,
+  OnNodesChange,
+  OnEdgesChange,
+  OnConnect,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-// Custom node types (Dev 2 will create these)
+// Import custom node components (Dev 2 will create these)
 import TriggerNode from '../nodes/TriggerNode';
 import AgentNode from '../nodes/AgentNode';
 import ActionNode from '../nodes/ActionNode';
 import UtilityNode from '../nodes/UtilityNode';
 
+// Define node types mapping
 const nodeTypes = {
   trigger: TriggerNode,
   agent: AgentNode,
@@ -560,722 +124,1111 @@ const nodeTypes = {
   utility: UtilityNode,
 };
 
-// Connection validation
-const isValidConnection = (connection: Connection) => {
-  // Trigger can connect to: Agent, Action, Utility
-  // Agent can connect to: Agent, Action, Utility
-  // Action can connect to: nothing (terminal)
-  // Utility can connect to: Agent, Action, Utility
+interface WorkflowCanvasProps {
+  initialNodes?: Node[];
+  initialEdges?: Edge[];
+  onNodesChange?: (nodes: Node[]) => void;
+  onEdgesChange?: (edges: Edge[]) => void;
+}
 
-  // TODO: Implement validation logic
-  return true;
-};
+export default function WorkflowCanvas({
+  initialNodes = [],
+  initialEdges = [],
+  onNodesChange: onNodesChangeProp,
+  onEdgesChange: onEdgesChangeProp,
+}: WorkflowCanvasProps) {
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
-export default function WorkflowCanvas() {
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  // Handle node changes (position, selection, deletion)
+  const handleNodesChange: OnNodesChange = useCallback(
+    (changes) => {
+      onNodesChange(changes);
+      // Notify parent component
+      if (onNodesChangeProp) {
+        const updatedNodes = nodes; // Get updated nodes after change
+        onNodesChangeProp(updatedNodes);
+      }
+    },
+    [onNodesChange, onNodesChangeProp, nodes]
+  );
 
-  const onConnect = (params: Connection) => {
-    setEdges((eds) => [...eds, { ...params, id: `e${params.source}-${params.target}` } as Edge]);
-  };
+  // Handle edge changes (creation, deletion)
+  const handleEdgesChange: OnEdgesChange = useCallback(
+    (changes) => {
+      onEdgesChange(changes);
+      // Notify parent component
+      if (onEdgesChangeProp) {
+        const updatedEdges = edges;
+        onEdgesChangeProp(updatedEdges);
+      }
+    },
+    [onEdgesChange, onEdgesChangeProp, edges]
+  );
+
+  // Handle new connections
+  const onConnect: OnConnect = useCallback(
+    (params) => {
+      setEdges((eds) => addEdge(params, eds));
+    },
+    [setEdges]
+  );
 
   return (
-    <div style={{ width: '100%', height: '600px' }}>
+    <div className="w-full h-screen bg-gray-50">
       <ReactFlow
         nodes={nodes}
         edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
+        onNodesChange={handleNodesChange}
+        onEdgesChange={handleEdgesChange}
         onConnect={onConnect}
-        isValidConnection={isValidConnection}
         nodeTypes={nodeTypes}
         fitView
+        attributionPosition="bottom-left"
       >
-        <Background />
+        <Background color="#aaa" gap={16} />
         <Controls />
+        <MiniMap />
       </ReactFlow>
     </div>
   );
 }
 ```
 
-**Test:** Canvas renders, can pan/zoom
+#### Step 1.2: Test the Canvas
 
----
-
-### Afternoon (2h): Code Review
-
-#### Task 2.3: Review Dev 2's PRs (1h)
-- Canvas setup
-- Node library panel
-- Drag-drop implementation
-
-**Checklist:**
-- [ ] Code follows TypeScript best practices
-- [ ] No `any` types
-- [ ] Components are properly typed
-- [ ] No console.log statements
-- [ ] Styles are clean (Tailwind CSS)
-
-#### Task 2.4: Review Dev 3's PRs (1h)
-- Execution schema
-- Database models
-
-**Checklist:**
-- [ ] Schemas have all required fields
-- [ ] Indexes defined correctly
-- [ ] Timestamps enabled
-- [ ] No sensitive data in schemas
-
-**End of Day 2 Check:**
-- [ ] React Flow canvas works
-- [ ] Dev 2 understands custom nodes
-- [ ] Dev 3's schemas merged
-
----
-
-## Day 3: Architecture Review & Unblocking (Wednesday)
-
-**Time:** 4 hours
-**Goal:** Ensure execution engine architecture is solid
-
-### Morning (2h): Execution Engine Review
-
-#### Task 3.1: Review Execution Engine with Dev 3 (2h)
-
-Sit with Dev 3 and review:
+Create a test page `src/pages/workflow/WorkflowBuilderPage.tsx`:
 
 ```typescript
-// BW_ConsumerService/src/integrations/whatsapp/workFlows/execution/execution-engine.service.ts
+import WorkflowCanvas from '../../components/workflow/canvas/WorkflowCanvas';
 
-@Injectable()
-export class ExecutionEngineService {
-  async executeWorkflow(
-    workflowId: string,
-    triggerData: Record<string, any>
-  ): Promise<ExecutionResult> {
-    // 1. Load workflow + steps
-    const workflow = await this.loadWorkflow(workflowId);
-    const steps = await this.loadSteps(workflowId);
-
-    // 2. Create execution record
-    const execution = await this.createExecution(workflow, triggerData);
-
-    // 3. Execute steps sequentially
-    let currentStepId = steps[0].stepId;
-    let context = { ...triggerData };
-
-    while (currentStepId) {
-      const step = steps.find(s => s.stepId === currentStepId);
-
-      try {
-        const result = await this.stepExecutor.execute(step, context);
-        await this.logStepExecution(execution._id, step, result);
-
-        context = { ...context, ...result.output };
-        currentStepId = step.nextStepId;
-      } catch (error) {
-        await this.logStepError(execution._id, step, error);
-        break;
-      }
-    }
-
-    await this.completeExecution(execution._id);
-    return execution;
-  }
+export default function WorkflowBuilderPage() {
+  return (
+    <div className="h-screen">
+      <WorkflowCanvas />
+    </div>
+  );
 }
 ```
 
-**Questions to ask Dev 3:**
-1. How do you handle circular dependencies? (A → B → A)
-2. What happens if a step takes > 30 seconds?
-3. How do you prevent duplicate executions?
+**How to Test:**
+1. Run `npm start`
+2. Navigate to the workflow builder page
+3. You should see:
+   - Grid background
+   - Pan functionality (click and drag background)
+   - Zoom controls (bottom-left buttons)
+   - Mini-map (bottom-right)
 
-**Test:** Walk through execution flow on whiteboard
+**Troubleshooting:**
+- If canvas doesn't render: Check React Flow import path (`@xyflow/react`, not `react-flow`)
+- If styles are broken: Ensure `@xyflow/react/dist/style.css` is imported
+- If pan/zoom doesn't work: Check canvas has width and height (use `w-full h-screen`)
 
 ---
 
-### Afternoon (2h): Help Dev 2 with Node Connections
+## Part 2: Drag-and-Drop from Node Library
 
-#### Task 3.2: Implement Connection Validation (2h)
+### What It Is
+Users should be able to drag node types from a library panel (left sidebar) onto the canvas. When dropped, a new node is created at the drop position.
 
-Help Dev 2 fix connection validation:
+### How to Build It
+
+#### Step 2.1: Set Up Zustand Store
+
+Create `src/store/workflow/workflowStore.ts`:
 
 ```typescript
-// src/utils/connectionValidation.ts
+import { create } from 'zustand';
+import { Node, Edge } from '@xyflow/react';
+
+interface WorkflowState {
+  nodes: Node[];
+  edges: Edge[];
+  selectedNode: Node | null;
+  addNode: (node: Node) => void;
+  updateNode: (nodeId: string, data: Partial<Node['data']>) => void;
+  deleteNode: (nodeId: string) => void;
+  setNodes: (nodes: Node[]) => void;
+  setEdges: (edges: Edge[]) => void;
+  selectNode: (node: Node | null) => void;
+}
+
+export const useWorkflowStore = create<WorkflowState>((set) => ({
+  nodes: [],
+  edges: [],
+  selectedNode: null,
+
+  addNode: (node) =>
+    set((state) => ({
+      nodes: [...state.nodes, node],
+    })),
+
+  updateNode: (nodeId, data) =>
+    set((state) => ({
+      nodes: state.nodes.map((node) =>
+        node.id === nodeId ? { ...node, data: { ...node.data, ...data } } : node
+      ),
+    })),
+
+  deleteNode: (nodeId) =>
+    set((state) => ({
+      nodes: state.nodes.filter((node) => node.id !== nodeId),
+      edges: state.edges.filter(
+        (edge) => edge.source !== nodeId && edge.target !== nodeId
+      ),
+    })),
+
+  setNodes: (nodes) => set({ nodes }),
+  setEdges: (edges) => set({ edges }),
+  selectNode: (node) => set({ selectedNode: node }),
+}));
+```
+
+#### Step 2.2: Enable Drag from Node Library
+
+Update the canvas to accept drops. Modify `WorkflowCanvas.tsx`:
+
+```typescript
+import { useCallback, useRef } from 'react';
+import { useWorkflowStore } from '../../../store/workflow/workflowStore';
+
+export default function WorkflowCanvas() {
+  const reactFlowWrapper = useRef<HTMLDivElement>(null);
+  const { nodes, edges, setNodes, setEdges, addNode } = useWorkflowStore();
+
+  // ... existing state ...
+
+  // Handle drop event
+  const onDrop = useCallback(
+    (event: React.DragEvent) => {
+      event.preventDefault();
+
+      const reactFlowBounds = reactFlowWrapper.current?.getBoundingClientRect();
+      const nodeType = event.dataTransfer.getData('application/reactflow');
+
+      if (!nodeType || !reactFlowBounds) return;
+
+      // Parse the dragged data
+      const nodeData = JSON.parse(nodeType);
+
+      // Calculate position relative to canvas
+      const position = {
+        x: event.clientX - reactFlowBounds.left,
+        y: event.clientY - reactFlowBounds.top,
+      };
+
+      // Create new node
+      const newNode: Node = {
+        id: `node_${Date.now()}`, // Generate unique ID
+        type: nodeData.type, // 'trigger', 'agent', 'action', 'utility'
+        position,
+        data: {
+          label: nodeData.label,
+          nodeType: nodeData.nodeType, // e.g., 'trigger_whatsapp'
+          config: {},
+          configured: false,
+        },
+      };
+
+      addNode(newNode);
+    },
+    [addNode, reactFlowWrapper]
+  );
+
+  const onDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+  }, []);
+
+  return (
+    <div
+      ref={reactFlowWrapper}
+      className="w-full h-screen"
+      onDrop={onDrop}
+      onDragOver={onDragOver}
+    >
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        // ... rest of props
+      >
+        {/* ... */}
+      </ReactFlow>
+    </div>
+  );
+}
+```
+
+#### Step 2.3: Node Library Panel (Coordinate with Dev 2)
+
+Dev 2 is responsible for building the node library panel, but you need to ensure drag-and-drop works. Here's what Dev 2's node library items should implement:
+
+```typescript
+// Example draggable node item (Dev 2 will implement this)
+<div
+  draggable
+  onDragStart={(event) => {
+    event.dataTransfer.setData(
+      'application/reactflow',
+      JSON.stringify({
+        type: 'trigger',
+        nodeType: 'trigger_whatsapp',
+        label: 'WhatsApp Message Trigger',
+      })
+    );
+    event.dataTransfer.effectAllowed = 'move';
+  }}
+  className="cursor-move p-2 bg-white border rounded"
+>
+  WhatsApp Message Trigger
+</div>
+```
+
+**Integration Point:** Ensure Dev 2 knows the expected data format for `dataTransfer.setData()`.
+
+**How to Test:**
+1. Dev 2 should have the node library panel ready
+2. Drag a node from the library
+3. Drop it on the canvas
+4. A new node should appear at the drop position
+
+**Troubleshooting:**
+- Node doesn't appear: Check `onDrop` event is firing (add console.log)
+- Position is wrong: Check `reactFlowBounds` calculation
+- Drag doesn't work: Ensure `draggable={true}` on library items
+
+---
+
+## Part 3: Node Connection Validation
+
+### What It Is
+Not all nodes can connect to each other. You need to implement validation rules that prevent invalid connections (e.g., Action → Trigger should be blocked).
+
+### How to Build It
+
+#### Step 3.1: Connection Rules
+
+Create `src/utils/connectionValidation.ts`:
+
+```typescript
+import { Connection, Node, Edge } from '@xyflow/react';
+
+// Define valid connections
+const CONNECTION_RULES: Record<string, string[]> = {
+  trigger: ['agent', 'action', 'utility'],
+  agent: ['agent', 'action', 'utility'],
+  action: [], // Terminal nodes - can't connect to anything
+  utility: ['agent', 'action', 'utility'],
+};
 
 export const isValidConnection = (
   connection: Connection,
-  nodes: Node[],
+  nodes: Node[]
+): boolean => {
+  const sourceNode = nodes.find((n) => n.id === connection.source);
+  const targetNode = nodes.find((n) => n.id === connection.target);
+
+  if (!sourceNode || !targetNode) return false;
+
+  const sourceType = sourceNode.type || '';
+  const targetType = targetNode.type || '';
+
+  // Check if connection is allowed
+  return CONNECTION_RULES[sourceType]?.includes(targetType) || false;
+};
+
+// Detect circular dependencies (optional, for advanced validation)
+export const hasCircularDependency = (
+  connection: Connection,
   edges: Edge[]
 ): boolean => {
   const { source, target } = connection;
 
-  // Get source and target node types
-  const sourceNode = nodes.find(n => n.id === source);
-  const targetNode = nodes.find(n => n.id === target);
+  // Build adjacency list
+  const graph: Record<string, string[]> = {};
+  edges.forEach((edge) => {
+    if (!graph[edge.source]) graph[edge.source] = [];
+    graph[edge.source].push(edge.target);
+  });
 
-  if (!sourceNode || !targetNode) return false;
+  // Add new edge
+  if (!graph[source]) graph[source] = [];
+  graph[source].push(target);
 
-  const sourceType = sourceNode.type;
-  const targetType = targetNode.type;
+  // DFS to detect cycle
+  const visited = new Set<string>();
+  const recStack = new Set<string>();
 
-  // Validation rules
-  const validConnections: Record<string, string[]> = {
-    trigger: ['agent', 'action', 'utility'],
-    agent: ['agent', 'action', 'utility'],
-    action: [], // Terminal node
-    utility: ['agent', 'action', 'utility'],
+  const hasCycle = (node: string): boolean => {
+    if (recStack.has(node)) return true; // Cycle detected
+    if (visited.has(node)) return false;
+
+    visited.add(node);
+    recStack.add(node);
+
+    const neighbors = graph[node] || [];
+    for (const neighbor of neighbors) {
+      if (hasCycle(neighbor)) return true;
+    }
+
+    recStack.delete(node);
+    return false;
   };
 
-  // Check if connection is valid
-  if (!validConnections[sourceType]?.includes(targetType)) {
-    return false;
-  }
-
-  // Prevent circular dependencies (simple check)
-  // TODO: Implement proper cycle detection if needed
-
-  return true;
+  return hasCycle(source);
 };
 ```
 
-**Test:** Try invalid connections, should be blocked
+#### Step 3.2: Integrate Validation into Canvas
 
-**End of Day 3 Check:**
-- [ ] Execution engine architecture approved
-- [ ] Connection validation works
-- [ ] Dev 3 ready to implement step executor
-
----
-
-## Day 4-5: Code Review & Support (Thursday-Friday)
-
-**Time:** 4 hours/day
-**Goal:** Review Dev 2's config forms, help where needed
-
-### Task 4.1: Review Config Forms Daily (1h/day)
-
-**Checklist for each config form:**
-- [ ] Uses correct schema from nodeSchemas.ts
-- [ ] Required fields marked with *
-- [ ] Validation works (try submitting empty)
-- [ ] Variable insertion UI present (if text field)
-- [ ] Save button updates node data
-- [ ] Node shows "configured" status after save
-
-### Task 4.2: Help Dev 2 with Complex Forms (1h/day)
-
-**Decision Agent Config** - special attention needed:
-- Has 3 output ports (Approve, Reject, Review)
-- May need custom connection logic
-
-**Decorpot Agent Config** - complex validation:
-- Budget must be >= ₹300,000
-- Project needs validation
-
-### Task 4.3: Review Dev 3's Step Executor (2h)
-
-Key integration points:
+Update `WorkflowCanvas.tsx`:
 
 ```typescript
-// Step Executor should call:
+import { isValidConnection } from '../../../utils/connectionValidation';
 
-// For Agents:
-POST http://bot-service:5000/qna
-Body: { question, uuid, chatHistory }
+export default function WorkflowCanvas() {
+  // ... existing code ...
 
-// For Actions (WhatsApp):
-this.whatsappService.sendMessage(recipient, message)
-
-// For Utilities (Sentiment):
-POST http://bot-service:5000/sentiment-analysis
-Body: { text }
-```
-
-**Test:** Execute simple workflow (Trigger → Agent → Action)
-
-**End of Day 5 Check:**
-- [ ] All 16 config forms complete
-- [ ] Step executor can call all services
-- [ ] Execute API works for simple workflow
-
----
-
-## Day 6: Validation & Early Integration (Monday)
-
-**Time:** 6 hours
-**Goal:** Enhance validation, begin integration, polish UI
-
-### Task 6.1: Enhance Validation Logic (2h)
-
-Work with Dev 3 to implement comprehensive validation:
-
-```typescript
-// execution.service.ts
-async validateWorkflow(workflowId: string): Promise<ValidationResult> {
-  const workflow = await this.loadWorkflow(workflowId);
-  const steps = await this.loadSteps(workflowId);
-
-  const errors = [];
-
-  // Check 1: All nodes configured
-  for (const step of steps) {
-    if (!step.config || Object.keys(step.config).length === 0) {
-      errors.push({
-        stepId: step.stepId,
-        message: `Step ${step.stepId} is not configured`,
-      });
-    }
-  }
-
-  // Check 2: No orphan nodes (all connected)
-  const connectedSteps = new Set<string>();
-  const triggerSteps = steps.filter(s => s.stepType === 'trigger');
-
-  // BFS traversal from each trigger
-  for (const trigger of triggerSteps) {
-    const queue = [trigger.stepId];
-    while (queue.length > 0) {
-      const currentId = queue.shift();
-      connectedSteps.add(currentId);
-      const current = steps.find(s => s.stepId === currentId);
-      if (current?.nextStepId) {
-        queue.push(current.nextStepId);
+  const onConnect: OnConnect = useCallback(
+    (params) => {
+      // Validate connection before adding
+      if (!isValidConnection(params, nodes)) {
+        toast.error('Invalid connection: Check node types');
+        return;
       }
-    }
-  }
 
-  // Find orphan nodes
-  for (const step of steps) {
-    if (!connectedSteps.has(step.stepId)) {
-      errors.push({
-        stepId: step.stepId,
-        message: `Step ${step.stepId} is not connected to workflow`,
-      });
-    }
-  }
+      setEdges((eds) => addEdge(params, eds));
+      toast.success('Connection created');
+    },
+    [nodes, setEdges]
+  );
 
-  // Check 3: At least one trigger
-  if (triggerSteps.length === 0) {
-    errors.push({ message: 'Workflow must have at least one trigger' });
-  }
-
-  // Check 4: No circular dependencies
-  // TODO: Implement cycle detection if needed
-
-  return {
-    valid: errors.length === 0,
-    errors,
-  };
+  return (
+    <ReactFlow
+      // ... other props
+      isValidConnection={(connection) => isValidConnection(connection, nodes)}
+      onConnect={onConnect}
+    >
+      {/* ... */}
+    </ReactFlow>
+  );
 }
 ```
 
-### Task 6.2: Code Review Validation UI (1.5h)
+**How to Test:**
+1. Create two nodes on canvas (e.g., WhatsApp Trigger and Decision Agent)
+2. Try connecting them - should work
+3. Create an Action node (e.g., Send WhatsApp)
+4. Try connecting Action to Trigger - should be blocked with error toast
+5. Try connecting Trigger to Action - should work
 
-Review Dev 2's ValidationModal component:
-- [ ] Opens when "Publish" button clicked
-- [ ] Shows clear error messages for each validation issue
-- [ ] Highlights problematic nodes on canvas
-- [ ] Allows user to fix issues and re-validate
-- [ ] Prevents publishing if validation fails
-
-### Task 6.3: Early Integration Testing (2h)
-
-Begin integration with existing BotWot backend:
-- [ ] Test workflow creation API with JWT auth
-- [ ] Test step creation with real node configs
-- [ ] Test workflow publishing flow
-- [ ] Document any integration issues
-- [ ] Coordinate with Dev 3 on auth token handling
-
-### Task 6.4: UI Polish & Bug Fixes (0.5h)
-
-Address any UI issues found during testing:
-- [ ] Canvas interactions smooth
-- [ ] Node configuration saves correctly
-- [ ] Validation feedback clear
-- [ ] Loading states working
-
-**End of Day 6 Check:**
-- [ ] Validation catches all major workflow issues
-- [ ] ValidationModal provides clear feedback
-- [ ] Basic integration with existing APIs working
-- [ ] No critical UI bugs
+**Troubleshooting:**
+- All connections blocked: Check CONNECTION_RULES object has correct types
+- Invalid connections still allowed: Ensure `isValidConnection` is passed to ReactFlow
+- No error message: Add `react-toastify` and configure ToastContainer
 
 ---
 
-## Day 7-8: Integration & Auth (Tuesday-Wednesday)
+## Part 4: Config Panel Integration
 
-**Time:** 4-5 hours/day
-**Goal:** Integrate with existing BotWot APIs, JWT auth
+### What It Is
+When a user clicks a node, a configuration panel should open on the right side. Dev 2 is building the config forms, but you need to:
+1. Detect when a node is clicked
+2. Pass the selected node to Dev 2's config panel
+3. Update the node when configuration is saved
 
-### Task 7.1: Document API Integration Points (2h)
+### How to Build It
 
-Create integration doc:
+#### Step 4.1: Node Selection Handler
 
-```markdown
-// docs/API_INTEGRATION.md
-
-## Existing APIs to Use
-
-### Create Workflow
-POST /workFlow/create
-Body: { orgId, userId, botId, integrationId, phoneNumberId, name }
-Returns: { workflowId }
-
-### Create Step
-POST /workFlow/step
-Body: { workflowId, stepId, stepType, platform, actionId, config, position }
-Returns: { stepId }
-
-### Update Step (for connections)
-PUT /workFlow/step/:wfId/:stepId
-Body: { nextStepId }
-
-### Publish Workflow
-POST /workFlow/publish/:id
-Returns: { status: 'PUBLISHED' }
-
-## Integration Flow
-
-When user clicks "Save Draft":
-1. Call POST /workFlow/create (if new workflow)
-2. For each node:
-   - Call POST /workFlow/step
-3. For each connection:
-   - Call PUT /workFlow/step (update nextStepId)
-
-When user clicks "Publish":
-1. Call POST /workFlow/:id/validate (new API)
-2. If valid, call POST /workFlow/publish/:id
-```
-
-### Task 7.2: Implement JWT Auth Integration (2h)
+Update `WorkflowCanvas.tsx` to handle node clicks:
 
 ```typescript
-// src/api/axiosInstance.ts
-import axios from 'axios';
+export default function WorkflowCanvas() {
+  const { selectNode } = useWorkflowStore();
 
-const axiosInstance = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:3001',
-});
+  const onNodeClick = useCallback(
+    (event: React.MouseEvent, node: Node) => {
+      selectNode(node);
+    },
+    [selectNode]
+  );
 
-// Add JWT token to all requests
-axiosInstance.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
-// Handle 401 responses
-axiosInstance.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Redirect to login
-      localStorage.removeItem('token');
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
-  }
-);
-
-export default axiosInstance;
+  return (
+    <ReactFlow
+      // ... other props
+      onNodeClick={onNodeClick}
+    >
+      {/* ... */}
+    </ReactFlow>
+  );
+}
 ```
 
-### Task 7.3: Implement saveWorkflow() (2h)
+#### Step 4.2: Config Panel Container
 
-Help Dev 2:
+Create `src/components/workflow/canvas/WorkflowBuilder.tsx` (main layout):
 
 ```typescript
-// src/api/services/workflowBuilderServices.ts
-import axiosInstance from '../axiosInstance';
+import { useState } from 'react';
+import WorkflowCanvas from './WorkflowCanvas';
+import ConfigPanel from '../config/ConfigPanel'; // Dev 2 will create this
+import { useWorkflowStore } from '../../../store/workflow/workflowStore';
 
-export const saveWorkflow = async (workflow: Workflow) => {
-  // 1. Create workflow
-  const { data: workflowData } = await axiosInstance.post('/workFlow/create', {
-    orgId: workflow.orgId,
-    userId: workflow.userId,
-    name: workflow.name,
+export default function WorkflowBuilder() {
+  const { selectedNode, updateNode } = useWorkflowStore();
+
+  const handleConfigSave = (config: Record<string, any>) => {
+    if (!selectedNode) return;
+
+    updateNode(selectedNode.id, {
+      config,
+      configured: true,
+    });
+
+    toast.success('Configuration saved');
+  };
+
+  return (
+    <div className="flex h-screen">
+      {/* Canvas */}
+      <div className="flex-1">
+        <WorkflowCanvas />
+      </div>
+
+      {/* Config Panel (right sidebar) */}
+      {selectedNode && (
+        <div className="w-96 bg-white border-l shadow-lg overflow-y-auto">
+          <ConfigPanel
+            node={selectedNode}
+            onSave={handleConfigSave}
+            onClose={() => useWorkflowStore.getState().selectNode(null)}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+**Integration Point:** Dev 2 will build `ConfigPanel` component. Ensure they receive:
+- `node`: The selected node object
+- `onSave`: Callback with config data
+- `onClose`: Callback to close panel
+
+**How to Test:**
+1. Click any node on canvas
+2. Config panel should open on the right
+3. (Once Dev 2 completes) Fill the form and save
+4. Node should update with `configured: true`
+
+---
+
+## Part 5: Canvas Controls & UX Polish
+
+### What It Is
+Add user-friendly controls and visual feedback to make the canvas intuitive.
+
+### Features to Implement
+
+#### Feature 5.1: Toolbar with Canvas Actions
+
+Create `src/components/workflow/canvas/CanvasToolbar.tsx`:
+
+```typescript
+import { useReactFlow } from '@xyflow/react';
+
+export default function CanvasToolbar() {
+  const { fitView, zoomIn, zoomOut } = useReactFlow();
+
+  return (
+    <div className="absolute top-4 left-4 z-10 bg-white rounded-lg shadow-lg p-2 flex gap-2">
+      <button
+        onClick={() => zoomIn()}
+        className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded"
+        title="Zoom In"
+      >
+        +
+      </button>
+      <button
+        onClick={() => zoomOut()}
+        className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded"
+        title="Zoom Out"
+      >
+        -
+      </button>
+      <button
+        onClick={() => fitView()}
+        className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded"
+        title="Fit View"
+      >
+        Fit
+      </button>
+    </div>
+  );
+}
+```
+
+Add to canvas:
+
+```typescript
+export default function WorkflowCanvas() {
+  return (
+    <ReactFlowProvider>
+      <div className="relative w-full h-screen">
+        <CanvasToolbar />
+        <ReactFlow>{/* ... */}</ReactFlow>
+      </div>
+    </ReactFlowProvider>
+  );
+}
+```
+
+#### Feature 5.2: Node Deletion
+
+Allow users to delete nodes by pressing `Delete` or `Backspace`:
+
+```typescript
+import { useKeyPress } from '../../../hooks/useKeyPress'; // Create this hook
+
+export default function WorkflowCanvas() {
+  const { selectedNode, deleteNode } = useWorkflowStore();
+
+  useKeyPress(['Delete', 'Backspace'], () => {
+    if (selectedNode) {
+      deleteNode(selectedNode.id);
+      toast.info('Node deleted');
+    }
   });
 
-  // 2. Create steps
-  for (const node of workflow.nodes) {
-    await axiosInstance.post('/workFlow/step', {
-      workflowId: workflowData.workflowId,
-      stepId: node.id,
-      stepType: node.type,
-      config: node.data.config,
-      position: node.position,
-    });
-  }
+  // ... rest of component
+}
+```
 
-  // 3. Update connections (nextStepId)
-  for (const edge of workflow.edges) {
-    await axiosInstance.put(`/workFlow/step/${workflowData.workflowId}/${edge.source}`, {
-      nextStepId: edge.target,
-    });
-  }
+Create the hook `src/hooks/useKeyPress.ts`:
 
-  return workflowData;
+```typescript
+import { useEffect } from 'react';
+
+export const useKeyPress = (keys: string[], callback: () => void) => {
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      if (keys.includes(event.key)) {
+        event.preventDefault();
+        callback();
+      }
+    };
+
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [keys, callback]);
 };
 ```
 
-**Test:** Save workflow, check MongoDB to see if data persisted
+#### Feature 5.3: Visual Feedback for Configured Nodes
 
-**End of Day 8 Check:**
-- [ ] JWT auth works
-- [ ] Workflows save to existing DB
-- [ ] Multi-tenant isolation verified (orgId filtering)
+Update node rendering to show configured status. Coordinate with Dev 2 on node component styling:
+
+```typescript
+// Example for TriggerNode (Dev 2 will implement)
+export default function TriggerNode({ data }: { data: any }) {
+  return (
+    <div
+      className={`px-4 py-2 rounded-lg border-2 ${
+        data.configured
+          ? 'bg-green-50 border-green-500'
+          : 'bg-gray-50 border-gray-300'
+      }`}
+    >
+      {data.configured && (
+        <span className="text-green-600 text-xs">✓</span>
+      )}
+      <p>{data.label}</p>
+    </div>
+  );
+}
+```
 
 ---
 
-## Day 9: E2E Testing (Thursday)
+## Part 6: Save & Load Workflows
 
-**Time:** 5 hours
-**Goal:** Write and run E2E test
+### What It Is
+Allow users to save their canvas state (nodes, edges) to the backend and load existing workflows.
 
-### Task 9.1: Setup Playwright (1h)
+### How to Build It
 
-```bash
-npm install -D @playwright/test
+#### Step 6.1: Save Workflow
 
-npx playwright install
-```
-
-Create config:
+Create API service `src/api/services/workflowService.ts`:
 
 ```typescript
-// playwright.config.ts
-import { defineConfig } from '@playwright/test';
+import axiosInstance from '../axiosInstance';
+import { Workflow } from '../../types/workflow.types';
 
-export default defineConfig({
-  testDir: './e2e',
-  use: {
-    baseURL: 'http://localhost:3000',
-    screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
-  },
-});
+export const saveWorkflow = async (workflow: Workflow) => {
+  try {
+    // 1. Create or update workflow
+    const { data: workflowData } = await axiosInstance.post(
+      '/workFlow/create',
+      {
+        orgId: workflow.orgId,
+        userId: workflow.userId,
+        name: workflow.name,
+      }
+    );
+
+    const workflowId = workflowData.workflowId;
+
+    // 2. Save each node as a step
+    for (const node of workflow.nodes) {
+      await axiosInstance.post('/workFlow/step', {
+        workflowId,
+        stepId: node.id,
+        stepType: node.type,
+        nodeType: node.data.nodeType,
+        config: node.data.config,
+        position: node.position,
+      });
+    }
+
+    // 3. Save connections (update nextStepId for each edge)
+    for (const edge of workflow.edges) {
+      await axiosInstance.put(
+        `/workFlow/step/${workflowId}/${edge.source}`,
+        {
+          nextStepId: edge.target,
+        }
+      );
+    }
+
+    return { workflowId };
+  } catch (error) {
+    console.error('Failed to save workflow:', error);
+    throw error;
+  }
+};
 ```
 
-### Task 9.2: Write E2E Test (3h)
+#### Step 6.2: Add Save Button
+
+Update `WorkflowBuilder.tsx`:
 
 ```typescript
-// e2e/workflow-builder.spec.ts
-import { test, expect } from '@playwright/test';
+import { saveWorkflow } from '../../../api/services/workflowService';
 
-test('create, validate, publish, and monitor workflow', async ({ page }) => {
-  // Login
-  await page.goto('/login');
-  await page.fill('input[name="email"]', 'test@example.com');
-  await page.fill('input[name="password"]', 'password123');
-  await page.click('button[type="submit"]');
-  await expect(page).toHaveURL(/\/dashboard/);
+export default function WorkflowBuilder() {
+  const { nodes, edges } = useWorkflowStore();
+  const [saving, setSaving] = useState(false);
 
-  // Create new workflow
-  await page.click('text=New Workflow');
-  await expect(page).toHaveURL(/\/workflows\/builder/);
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const workflow: Workflow = {
+        name: 'My Workflow', // Get from user input
+        nodes,
+        edges,
+        status: 'draft',
+        orgId: 'user-org-id', // Get from auth context
+        userId: 'user-id', // Get from auth context
+      };
 
-  // Drag WhatsApp Trigger
-  const trigger = page.locator('text=WhatsApp Message Trigger').first();
-  const canvas = page.locator('.react-flow');
-  await trigger.dragTo(canvas, { targetPosition: { x: 300, y: 200 } });
+      const result = await saveWorkflow(workflow);
+      toast.success(`Workflow saved! ID: ${result.workflowId}`);
+    } catch (error) {
+      toast.error('Failed to save workflow');
+    } finally {
+      setSaving(false);
+    }
+  };
 
-  // Configure trigger
-  await page.click('.react-flow__node:has-text("WhatsApp Message Trigger")');
-  await page.selectOption('select[name="accountId"]', { index: 0 });
-  await page.click('button:has-text("Save Configuration")');
-  await expect(page.locator('text=Configuration saved')).toBeVisible();
+  return (
+    <div className="flex flex-col h-screen">
+      {/* Header with Save button */}
+      <div className="h-16 bg-white border-b flex items-center justify-between px-4">
+        <h1 className="text-xl font-bold">Workflow Builder</h1>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400"
+        >
+          {saving ? 'Saving...' : 'Save Draft'}
+        </button>
+      </div>
 
-  // Drag Decision Agent
-  const agent = page.locator('text=Decision Agent').first();
-  await agent.dragTo(canvas, { targetPosition: { x: 300, y: 400 } });
-
-  // Configure agent
-  await page.click('.react-flow__node:has-text("Decision Agent")');
-  await page.fill('textarea[name="systemPrompt"]', 'Analyze customer intent and decide...');
-  await page.click('button:has-text("Save Configuration")');
-
-  // Connect trigger to agent
-  const triggerHandle = page.locator('.react-flow__node:has-text("WhatsApp Message Trigger") .react-flow__handle-bottom');
-  const agentHandle = page.locator('.react-flow__node:has-text("Decision Agent") .react-flow__handle-top');
-  await triggerHandle.dragTo(agentHandle);
-
-  // Drag Send WhatsApp action
-  const action = page.locator('text=Send WhatsApp').first();
-  await action.dragTo(canvas, { targetPosition: { x: 300, y: 600 } });
-
-  // Configure action
-  await page.click('.react-flow__node:has-text("Send WhatsApp")');
-  await page.fill('textarea[name="messageTemplate"]', 'Hi {{customer_name}}, thanks for reaching out!');
-  await page.click('button:has-text("Save Configuration")');
-
-  // Connect agent to action
-  const agentOutHandle = page.locator('.react-flow__node:has-text("Decision Agent") .react-flow__handle-bottom');
-  const actionInHandle = page.locator('.react-flow__node:has-text("Send WhatsApp") .react-flow__handle-top');
-  await agentOutHandle.dragTo(actionInHandle);
-
-  // Save workflow
-  await page.click('button:has-text("Save Draft")');
-  await expect(page.locator('text=Draft saved')).toBeVisible();
-
-  // Publish workflow (validation happens automatically)
-  await page.click('button:has-text("Publish")');
-
-  // Validation should pass
-  await expect(page.locator('text=Validation passed')).toBeVisible();
-
-  await page.click('button:has-text("Publish & Go Live")');
-  await expect(page).toHaveURL(/\/workflows\/[a-z0-9]+/);
-
-  // Check monitoring page
-  await expect(page.locator('text=🟢 Live')).toBeVisible();
-  await expect(page.locator('.execution-row')).toHaveCount(0); // No executions yet
-
-  // View details
-  await page.click('button:has-text("View Details")');
-  await expect(page.locator('.step-log')).toHaveCount(3);
-});
+      {/* Canvas and Config Panel */}
+      <div className="flex flex-1">
+        {/* ... existing layout */}
+      </div>
+    </div>
+  );
+}
 ```
 
-### Task 9.3: Run Test & Fix Issues (1h)
+#### Step 6.3: Load Workflow
 
-```bash
-npx playwright test
+```typescript
+export const loadWorkflow = async (workflowId: string) => {
+  try {
+    // Fetch workflow and steps from backend
+    const { data: workflow } = await axiosInstance.get(
+      `/workFlow/${workflowId}`
+    );
+    const { data: steps } = await axiosInstance.get(
+      `/workFlow/${workflowId}/steps`
+    );
 
-# If test fails, debug:
-npx playwright test --debug
+    // Transform backend data to React Flow format
+    const nodes = steps.map((step: any) => ({
+      id: step.stepId,
+      type: step.stepType,
+      position: step.position || { x: 0, y: 0 },
+      data: {
+        label: step.label || step.nodeType,
+        nodeType: step.nodeType,
+        config: step.config || {},
+        configured: !!step.config && Object.keys(step.config).length > 0,
+      },
+    }));
+
+    // Reconstruct edges from nextStepId
+    const edges = steps
+      .filter((step: any) => step.nextStepId)
+      .map((step: any) => ({
+        id: `e${step.stepId}-${step.nextStepId}`,
+        source: step.stepId,
+        target: step.nextStepId,
+      }));
+
+    return { nodes, edges, workflow };
+  } catch (error) {
+    console.error('Failed to load workflow:', error);
+    throw error;
+  }
+};
 ```
 
-**End of Day 9 Check:**
-- [ ] E2E test passes
-- [ ] Complete user journey works
-- [ ] Screenshots captured for failures
+**Integration Point:** Backend APIs (`POST /workFlow/create`, `POST /workFlow/step`, etc.) are managed by Dev 3. Ensure API contracts are clear.
+
+**How to Test:**
+1. Create a workflow with 3-4 nodes and connections
+2. Click "Save Draft"
+3. Check MongoDB to verify workflow and steps are saved
+4. Reload the page
+5. Load the workflow by ID
+6. Canvas should restore with all nodes and connections
 
 ---
 
-## Day 10: Final Review & Deploy (Friday)
+## Part 7: Validation Visualization
 
-**Time:** 5 hours
-**Goal:** Final review, bug fixes, deploy
+### What It Is
+When a user clicks "Publish", validation runs on the backend (Dev 3's responsibility). If there are errors, you need to visually highlight problematic nodes on the canvas.
 
-### Task 10.1: Final Code Review (2h)
+### How to Build It
 
-Review all merged code:
-- [ ] No console.log
-- [ ] No hardcoded values
-- [ ] Error handling present
-- [ ] Loading states implemented
-- [ ] Responsive design (basic)
-
-### Task 10.2: Performance Check (1h)
+#### Step 7.1: Validation Error Highlighting
 
 ```typescript
-// Test canvas performance
-const testLargeWorkflow = () => {
-  // Create 50 nodes
-  const nodes = Array.from({ length: 50 }, (_, i) => ({
-    id: `node-${i}`,
-    type: 'trigger',
-    position: { x: (i % 10) * 200, y: Math.floor(i / 10) * 200 },
-    data: { label: `Node ${i}`, config: {}, configured: true },
+export default function WorkflowCanvas() {
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+
+  // Update nodes to show error state
+  const nodesWithErrors = nodes.map((node) => ({
+    ...node,
+    data: {
+      ...node.data,
+      hasError: validationErrors.includes(node.id),
+    },
   }));
 
-  // Measure render time
-  const start = performance.now();
-  // Render canvas with 50 nodes
-  const end = performance.now();
-  console.log(`Render time: ${end - start}ms`); // Should be <2000ms
+  return (
+    <ReactFlow
+      nodes={nodesWithErrors}
+      // ... other props
+    />
+  );
+}
+```
+
+Coordinate with Dev 2 to update node components:
+
+```typescript
+// TriggerNode example
+export default function TriggerNode({ data }: { data: any }) {
+  return (
+    <div
+      className={`px-4 py-2 rounded-lg border-2 ${
+        data.hasError
+          ? 'bg-red-50 border-red-500 animate-pulse'
+          : data.configured
+          ? 'bg-green-50 border-green-500'
+          : 'bg-gray-50 border-gray-300'
+      }`}
+    >
+      {/* ... */}
+    </div>
+  );
+}
+```
+
+#### Step 7.2: Validation Modal
+
+When user clicks "Publish", show validation results in a modal (before publishing):
+
+```typescript
+import { useState } from 'react';
+import { validateWorkflow } from '../../../api/services/workflowService';
+
+export default function WorkflowBuilder() {
+  const [validationResult, setValidationResult] = useState<any>(null);
+
+  const handlePublish = async () => {
+    // Step 1: Validate
+    const result = await validateWorkflow(workflowId);
+
+    if (!result.valid) {
+      // Show errors in modal
+      setValidationResult(result);
+      return;
+    }
+
+    // Step 2: Publish if valid
+    await publishWorkflow(workflowId);
+    toast.success('Workflow published!');
+  };
+
+  return (
+    <>
+      <button onClick={handlePublish}>Publish</button>
+
+      {validationResult && !validationResult.valid && (
+        <ValidationModal
+          errors={validationResult.errors}
+          onClose={() => setValidationResult(null)}
+          onHighlightNode={(nodeId) => {
+            // Scroll to node and highlight it
+            const node = nodes.find((n) => n.id === nodeId);
+            if (node) {
+              // Use React Flow's fitView with specific node
+            }
+          }}
+        />
+      )}
+    </>
+  );
+}
+```
+
+---
+
+## Part 8: Performance Optimization
+
+### What It Is
+Ensure the canvas remains responsive even with 50+ nodes.
+
+### How to Optimize
+
+#### Optimization 8.1: React Flow Performance Settings
+
+```typescript
+export default function WorkflowCanvas() {
+  return (
+    <ReactFlow
+      nodes={nodes}
+      edges={edges}
+      // Performance optimizations
+      defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+      minZoom={0.2}
+      maxZoom={4}
+      nodesDraggable={true}
+      nodesConnectable={true}
+      elementsSelectable={true}
+      selectNodesOnDrag={false} // Prevent accidental selection
+      panOnDrag={[1, 2]} // Pan with middle or right mouse button
+      fitViewOptions={{ padding: 0.2 }}
+    >
+      {/* ... */}
+    </ReactFlow>
+  );
+}
+```
+
+#### Optimization 8.2: Memoization
+
+Use React memoization to prevent unnecessary re-renders:
+
+```typescript
+import { memo } from 'react';
+
+const TriggerNode = memo(({ data }: { data: any }) => {
+  // ... component logic
+});
+
+export default TriggerNode;
+```
+
+**How to Test Performance:**
+1. Create a test with 50 nodes
+2. Measure render time (use Chrome DevTools Performance tab)
+3. Target: Initial render <2 seconds, drag operations <16ms (60 FPS)
+
+---
+
+## Common Issues & Troubleshooting
+
+### Issue: "Canvas not rendering"
+**Solution:**
+- Check React Flow CSS is imported: `import '@xyflow/react/dist/style.css'`
+- Ensure canvas has explicit height: `h-screen` or `height: 600px`
+
+### Issue: "Drag-and-drop not working"
+**Solution:**
+- Verify `onDrop` and `onDragOver` are implemented
+- Check `dataTransfer.getData('application/reactflow')` format
+- Ensure draggable items have `draggable={true}`
+
+### Issue: "Nodes disappear after drop"
+**Solution:**
+- Check Zustand store is properly updating
+- Verify `addNode` function is called
+- Use React DevTools to inspect store state
+
+### Issue: "Connections create duplicates"
+**Solution:**
+- Each edge needs a unique `id` field
+- Use format: `e${source}-${target}` for consistency
+
+### Issue: "Canvas state not persisting"
+**Solution:**
+- Ensure save API calls complete successfully (check network tab)
+- Verify backend stores position data correctly
+- Check load function transforms data properly
+
+---
+
+## Integration Checklist with Other Devs
+
+### With Dev 2 (Nodes & Config):
+- [ ] Agree on drag-and-drop data format
+- [ ] Ensure node components accept `hasError` and `configured` props
+- [ ] Confirm config panel receives `node`, `onSave`, `onClose` props
+- [ ] Coordinate on node visual styling (icons, colors, borders)
+
+### With Dev 3 (Execution Engine):
+- [ ] Confirm API endpoints for save/load workflows
+- [ ] Agree on workflow data structure (nodes/steps mapping)
+- [ ] Ensure validation endpoint returns node IDs with errors
+- [ ] Coordinate on authentication (JWT token handling)
+
+### With Dev 4 (Monitoring):
+- [ ] No direct integration needed
+- [ ] Monitoring is a separate page/component
+
+---
+
+## Testing Checklist
+
+Before marking your work as complete, test all these scenarios:
+
+**Canvas Basics:**
+- [ ] Canvas renders with grid background
+- [ ] Pan works (click and drag)
+- [ ] Zoom works (controls and mouse wheel)
+- [ ] Mini-map shows all nodes
+
+**Drag-and-Drop:**
+- [ ] Can drag nodes from library to canvas
+- [ ] Nodes appear at correct drop position
+- [ ] Multiple nodes can be dropped
+
+**Connections:**
+- [ ] Can connect compatible node types
+- [ ] Invalid connections are blocked
+- [ ] Connection shows visual feedback on hover
+- [ ] Edges can be deleted
+
+**Node Operations:**
+- [ ] Click node to select it
+- [ ] Selected node shows config panel
+- [ ] Config panel closes when clicking canvas
+- [ ] Delete key removes selected node
+- [ ] Node shows "configured" indicator after saving config
+
+**Save/Load:**
+- [ ] Save workflow creates correct API calls
+- [ ] Workflow persists to database
+- [ ] Load workflow restores all nodes and edges
+- [ ] Node positions are preserved
+
+**Validation:**
+- [ ] Invalid nodes are highlighted
+- [ ] Validation errors show in modal
+- [ ] Can't publish invalid workflow
+
+**Performance:**
+- [ ] Canvas with 50 nodes loads in <2 seconds
+- [ ] Dragging nodes is smooth (no lag)
+- [ ] Zooming is responsive
+
+---
+
+## Code Templates
+
+### Template: Basic Custom Node
+
+```typescript
+import { memo } from 'react';
+import { Handle, Position } from '@xyflow/react';
+
+const CustomNode = memo(({ data }: { data: any }) => {
+  return (
+    <div className="px-4 py-2 bg-white border-2 border-gray-300 rounded-lg shadow-md">
+      <Handle type="target" position={Position.Top} />
+      <div className="text-sm font-medium">{data.label}</div>
+      {data.configured && <span className="text-xs text-green-600">✓</span>}
+      <Handle type="source" position={Position.Bottom} />
+    </div>
+  );
+});
+
+export default CustomNode;
+```
+
+### Template: API Call with Error Handling
+
+```typescript
+const handleSave = async () => {
+  try {
+    setLoading(true);
+    const result = await saveWorkflow(workflow);
+    toast.success('Workflow saved!');
+    return result;
+  } catch (error) {
+    console.error('Save failed:', error);
+    if (error.response?.status === 401) {
+      toast.error('Session expired. Please log in again.');
+    } else {
+      toast.error('Failed to save workflow. Please try again.');
+    }
+  } finally {
+    setLoading(false);
+  }
 };
 ```
 
-### Task 10.3: Deploy to Staging (2h)
-
-```bash
-# Frontend
-cd BW_FE_Application
-npm run build
-# Deploy build/ to hosting (Vercel, Netlify, or S3)
-
-# Backend
-cd BW_ConsumerService
-# Already deployed - just add new endpoints
-
-# Run smoke tests
-curl https://staging-api.wrrk.ai/workFlow/123/execute
-```
-
-**End of Day 10 Check:**
-- [ ] All tests passing
-- [ ] Deployed to staging
-- [ ] Demo prepared
-- [ ] Bug list documented (for post-MVP)
-
 ---
 
-## Your Daily Checklist
+## Final Notes
 
-**Every Morning (15 min):**
-- [ ] Review Jira board
-- [ ] Check for blockers
-- [ ] Plan today's focus
+- **Focus on UX:** Your job is to make the canvas intuitive. Test with real users if possible.
+- **Coordinate early:** Meet with Dev 2 daily to ensure node components integrate smoothly.
+- **Performance matters:** Test with large workflows (50+ nodes) frequently.
+- **Ask for help:** If React Flow behavior is confusing, check their docs or ask the team lead.
 
-**Every Evening (15 min):**
-- [ ] Update Jira (move cards)
-- [ ] Review PRs from team
-- [ ] Document blockers
-
-**Every Standup:**
-1. What I did yesterday
-2. What I'm doing today
-3. Any blockers for team
-
----
-
-## Code Review Checklist (Use Daily)
-
-**For Every PR:**
-- [ ] Code follows TypeScript best practices
-- [ ] No `any` types
-- [ ] No console.log
-- [ ] Error handling present
-- [ ] Tests written and passing
-- [ ] Comments for complex logic
-- [ ] No hardcoded values
-- [ ] Follows existing patterns
-
-**Approve only if:**
-- All checkboxes checked
-- Tests pass
-- Manual testing done
-
----
-
-## Tips for Success
-
-1. **Don't code everything yourself** - Your job is to unblock team, not do all work
-2. **Review code quickly** - Aim for <2 hour turnaround on PRs
-3. **Pair program when stuck** - 30 min pair > 2 hours solo struggle
-4. **Document decisions** - Future you will thank you
-5. **Test integration points early** - Don't wait until Day 8
-6. **Keep team motivated** - Celebrate daily wins
-
----
-
-## Resources
-
+**Resources:**
 - React Flow Docs: https://reactflow.dev
-- BotWot Unified PRD: `BotWot_Unified_PRD.md`
-- Tech Arch: `TECH_ARCH.md`
-- Sprint Plan: `SPRINT.md`
-
----
-
-**Good luck! You got this! 🚀**
+- Zustand Docs: https://zustand-demo.pmnd.rs/
+- Sprint Plan: `SPRINT.md` (for your specific tasks)
+- Tech Arch: `TECH_ARCH.md` (for node type specifications)
