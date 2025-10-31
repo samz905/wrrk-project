@@ -59,6 +59,26 @@ export interface WorkflowNode {
 }
 ```
 
+**IMPORTANT: Understanding `type` vs `nodeType`**
+
+There are TWO related but different fields:
+
+1. **`type`**: React Flow node category
+   - Values: `'trigger'`, `'agent'`, `'action'`, `'utility'`
+   - Purpose: Determines which React Flow node component to render (TriggerNode, AgentNode, etc.)
+   - Used by: Dev 1 (canvas) to route to the correct node component
+
+2. **`nodeType`**: Specific node implementation
+   - Values: `'trigger_whatsapp'`, `'trigger_email'`, `'action_shopify_create_order'`, etc.
+   - Purpose: Identifies the exact node type for configuration and execution
+   - Used by: Dev 2 (config forms) and Dev 3 (execution handlers)
+
+**Example:**
+- A WhatsApp Trigger node has `type: 'trigger'` AND `nodeType: 'trigger_whatsapp'`
+- A Shopify Create Order action has `type: 'action'` AND `nodeType: 'action_shopify_create_order'`
+
+When dragging from the library, you set BOTH fields. When creating config forms, you route based on `nodeType`.
+
 ### 3. Node Type Specifications
 
 Refer to `TECH_ARCH.md` for complete list of all 30 node types:
@@ -1303,17 +1323,6 @@ export default function MultiSelectField({ label, name, options, register }: any
 
 ---
 
-## Time Management Tips
-
-You have the MOST work among all devs. Here's how to stay on track:
-
-1. **Use Templates:** Don't reinvent the wheel for each form
-2. **Group Similar Forms:** Do all triggers together, all agents together
-3. **Start Simple:** Build simplest forms first to build momentum
-4. **Test As You Go:** Don't wait until all 30 are done to test
-5. **Ask for Help:** If you're >2 days behind, Dev 1 can help with simpler forms
-6. **JSON Fallback:** For very complex forms (Shopify Create Order), consider allowing JSON textarea input as alternative to nested form fields
-
 **Daily Targets:**
 - Days 1-2: Node library + node components (12h)
 - Days 3-5: 15 configuration forms (25h)
@@ -1322,14 +1331,6 @@ You have the MOST work among all devs. Here's how to stay on track:
 - Day 10: Bug fixes, final integration (8h)
 
 ---
-
-## Final Notes
-
-- **You have the most work** - prioritize ruthlessly
-- **Reuse everything** - every hour saved on repetition helps
-- **Coordinate with Dev 1 daily** - your work is tightly coupled
-- **Test incrementally** - don't wait until day 10 to test
-- **Communicate blockers early** - if falling behind, speak up
 
 **Resources:**
 - React Hook Form Docs: https://react-hook-form.com

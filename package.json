@@ -1,0 +1,12 @@
+{
+  "name": "jira-board-setup",
+  "version": "1.0.0",
+  "description": "Setup script for Jira board with Visual Workflow Builder MVP",
+  "main": "setup-jira-board.js",
+  "scripts": {
+    "setup-jira": "node setup-jira-board.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.0.0"
+  }
+}

@@ -265,7 +265,7 @@ Build a visual workflow builder that allows users to:
 - Write test: Canvas component renders without crashing
 - Write test: Pan and zoom interactions work
 
-**Assigned:** Dev 2
+**Assigned:** Dev 1
 **Dependencies:** None
 **Priority:** P0 (Critical Path)
 
@@ -324,7 +324,7 @@ Build a visual workflow builder that allows users to:
 - Write test: Node has unique ID
 - Write test: Node positioned at drop coordinates
 
-**Assigned:** Dev 2
+**Assigned:** Dev 1
 **Dependencies:** Story 1.1, Story 1.2
 **Priority:** P0
 
@@ -354,7 +354,7 @@ Build a visual workflow builder that allows users to:
 - Write test: Invalid connection shows error
 - Write test: Edge stored in state
 
-**Assigned:** Dev 2
+**Assigned:** Dev 1
 **Dependencies:** Story 1.3
 **Priority:** P0
 
@@ -431,7 +431,6 @@ Build a visual workflow builder that allows users to:
 - [ ] Form state managed locally
 
 **Tasks:**
-- **[DEV1-01]** Define configuration schema for each node type (3h)
 - **[DEV2-35]** Create WhatsAppTriggerConfig.tsx (1h)
 - **[DEV2-36]** Create EmailTriggerConfig.tsx (1h)
 - **[DEV2-37]** Create VoiceTriggerConfig.tsx (1h)
@@ -455,7 +454,7 @@ Build a visual workflow builder that allows users to:
 - Write test: Config form renders for each node type
 - Write test: Form fields match schema
 
-**Assigned:** Dev 1 (schema), Dev 2 (forms)
+**Assigned:** Dev 2
 **Dependencies:** Story 2.1
 **Priority:** P0
 
@@ -742,7 +741,7 @@ Build a visual workflow builder that allows users to:
 - Write test: Execution list renders
 - Write test: Filters work correctly
 
-**Assigned:** Dev 2
+**Assigned:** Dev 4
 **Dependencies:** None
 **Priority:** P1
 
@@ -799,7 +798,7 @@ Build a visual workflow builder that allows users to:
 - Write test: Step logs render
 - Write test: Retry button works
 
-**Assigned:** Dev 2
+**Assigned:** Dev 4
 **Dependencies:** Story 5.1, Story 5.2
 **Priority:** P1
 
@@ -811,14 +810,15 @@ Build a visual workflow builder that allows users to:
 **So that** the detail view can display them
 
 **Acceptance Criteria:**
-- [ ] GET /execution/:id endpoint
+- [ ] GET /workFlow/execution/:id endpoint
+- [ ] GET /workFlow/execution/:id/logs endpoint
 - [ ] Returns execution record + all step logs
 - [ ] Step logs ordered by stepOrder
 
 **Tasks:**
-- **[DEV3-38]** Implement GET /execution/:id (2h)
-- **[DEV3-39]** Join execution + logs (MongoDB aggregation or multiple queries) (1h)
-- **[DEV3-40]** Test: Endpoint returns correct data (1h)
+- **[DEV3-38]** Implement GET /workFlow/execution/:id (2h)
+- **[DEV3-39]** Implement GET /workFlow/execution/:id/logs (1h)
+- **[DEV3-40]** Test: Endpoints return correct data (1h)
 
 **TDD:**
 - Write test: Endpoint returns execution + logs
@@ -867,16 +867,16 @@ Build a visual workflow builder that allows users to:
 - [ ] Stop polling when user navigates away
 
 **Tasks:**
-- **[DEV2-90]** Implement polling with setInterval (1h)
-- **[DEV2-91]** Add manual "Refresh" button (0.5h)
-- **[DEV2-92]** Clean up interval on unmount (0.5h)
-- **[DEV2-93]** Test: Polling updates list (1h)
+- **[DEV4-01]** Implement polling with setInterval (1h)
+- **[DEV4-02]** Add manual "Refresh" button (0.5h)
+- **[DEV4-03]** Clean up interval on unmount (0.5h)
+- **[DEV4-04]** Test: Polling updates list (1h)
 
 **TDD:**
 - Write test: Polling fetches new executions
 - Write test: Interval cleaned up on unmount
 
-**Assigned:** Dev 2
+**Assigned:** Dev 4
 **Dependencies:** Story 5.2
 **Priority:** P2
 
@@ -1051,8 +1051,8 @@ Build a visual workflow builder that allows users to:
 - [ ] Execution engine architecture documented
 
 **Assignments:**
-- **Dev 1:** Setup project, document execution flow, review schemas
-- **Dev 2:** Stories 1.1, 1.2 (Canvas setup, Node library)
+- **Dev 1:** Stories 1.1, 1.2 (Canvas setup, Node library - support), document execution flow, review schemas
+- **Dev 2:** Story 1.2 (Node library)
 - **Dev 3:** Story 3.1 (Execution schemas)
 
 **End-of-Day Check:** Canvas renders, node library shows 16 nodes, schemas created
@@ -1068,8 +1068,8 @@ Build a visual workflow builder that allows users to:
 - [ ] Execution engine core started
 
 **Assignments:**
-- **Dev 1:** Review code, unblock issues
-- **Dev 2:** Stories 1.3, 1.5 (Drag-drop, Node components)
+- **Dev 1:** Story 1.3 (Drag-drop), review code, unblock issues
+- **Dev 2:** Story 1.5 (Node components)
 - **Dev 3:** Story 3.2 (Execution engine core)
 
 **End-of-Day Check:** Can drag nodes onto canvas, nodes render with correct styles, execution engine skeleton exists
@@ -1085,8 +1085,8 @@ Build a visual workflow builder that allows users to:
 - [ ] Configuration panel layout built
 
 **Assignments:**
-- **Dev 1:** Define node config schemas (Story 2.2)
-- **Dev 2:** Stories 1.4, 2.1 (Node connections, Config panel)
+- **Dev 1:** Story 1.4 (Node connections)
+- **Dev 2:** Story 2.1 (Config panel)
 - **Dev 3:** Story 3.3 (Step executor)
 
 **End-of-Day Check:** Can connect nodes, config panel opens, step executor routes to handlers
@@ -1157,8 +1157,9 @@ Build a visual workflow builder that allows users to:
 
 **Assignments:**
 - **Dev 1:** Complete API integration, JWT auth testing
-- **Dev 2:** Story 5.1 (Monitoring page)
+- **Dev 2:** UI polish, support Dev 4
 - **Dev 3:** Story 5.2 (Get executions API)
+- **Dev 4:** Story 5.1 (Monitoring page)
 
 **End-of-Day Check:** Monitoring page shows executions, auth works end-to-end
 
@@ -1174,8 +1175,9 @@ Build a visual workflow builder that allows users to:
 
 **Assignments:**
 - **Dev 1:** Story 6.1 (API integration), Story 6.2 (JWT auth)
-- **Dev 2:** Stories 5.3 (Execution detail), 2.3 (Variable insertion)
+- **Dev 2:** Story 2.3 (Variable insertion)
 - **Dev 3:** Stories 5.4, 5.5 (Get details API, Retry API)
+- **Dev 4:** Story 5.3 (Execution detail)
 
 **End-of-Day Check:** Can view execution details, retry failed executions, workflows save to existing DB
 
@@ -1191,8 +1193,9 @@ Build a visual workflow builder that allows users to:
 
 **Assignments:**
 - **Dev 1:** Stories 6.4 (E2E test), 6.5 (Bug triage)
-- **Dev 2:** Story 6.5 (Frontend bug fixes), Story 5.6 (Polling)
+- **Dev 2:** Story 6.5 (Frontend bug fixes)
 - **Dev 3:** Story 6.3 (Multi-tenancy), Story 6.5 (Backend bug fixes)
+- **Dev 4:** Story 5.6 (Polling)
 
 **End-of-Day Check:** E2E test passes, no critical bugs
 

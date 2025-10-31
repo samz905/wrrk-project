@@ -1021,6 +1021,354 @@ export default function WorkflowBuilder() {
 }
 ```
 
+#### Step 7.3: ValidationModal Component Implementation
+
+**What It Is:**
+A modal component that displays validation errors in a user-friendly format, allowing users to click on errors to navigate to the problematic node on the canvas.
+
+**Create `src/components/workflow/canvas/ValidationModal.tsx`:**
+
+```typescript
+import { useReactFlow } from '@xyflow/react';
+
+interface ValidationError {
+  nodeId: string;
+  message: string;
+  field?: string;
+}
+
+interface ValidationModalProps {
+  errors: ValidationError[];
+  onClose: () => void;
+  onHighlightNode?: (nodeId: string) => void;
+}
+
+export default function ValidationModal({
+  errors,
+  onClose,
+  onHighlightNode,
+}: ValidationModalProps) {
+  const { fitView, setCenter, getNode } = useReactFlow();
+
+  const handleGoToNode = (nodeId: string) => {
+    // Highlight the node on canvas
+    if (onHighlightNode) {
+      onHighlightNode(nodeId);
+    }
+
+    // Center and zoom to the node
+    const node = getNode(nodeId);
+    if (node) {
+      setCenter(node.position.x + 75, node.position.y + 50, {
+        zoom: 1.5,
+        duration: 800,
+      });
+    }
+  };
+
+  // Group errors by nodeId
+  const errorsByNode = errors.reduce((acc, error) => {
+    if (!acc[error.nodeId]) {
+      acc[error.nodeId] = [];
+    }
+    acc[error.nodeId].push(error);
+    return acc;
+  }, {} as Record<string, ValidationError[]>);
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="px-6 py-4 border-b bg-red-50 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+              <svg
+                className="w-6 h-6 text-red-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">
+                Validation Failed
+              </h2>
+              <p className="text-sm text-gray-600">
+                {Object.keys(errorsByNode).length} node(s) with {errors.length}{' '}
+                error(s)
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
+
+        {/* Error List */}
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          <div className="space-y-4">
+            {Object.entries(errorsByNode).map(([nodeId, nodeErrors]) => {
+              const node = getNode(nodeId);
+              return (
+                <div
+                  key={nodeId}
+                  className="border border-red-200 rounded-lg p-4 bg-red-50"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900">
+                        {node?.data?.label || nodeId}
+                      </h3>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Node Type: {node?.data?.nodeType || 'Unknown'}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleGoToNode(nodeId)}
+                      className="ml-4 px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition-colors flex items-center gap-1"
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                        />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                        />
+                      </svg>
+                      Go to Node
+                    </button>
+                  </div>
+
+                  <ul className="space-y-2 mt-3">
+                    {nodeErrors.map((error, idx) => (
+                      <li
+                        key={idx}
+                        className="flex items-start gap-2 text-sm text-gray-700"
+                      >
+                        <span className="text-red-600 mt-0.5">•</span>
+                        <span>
+                          {error.field && (
+                            <span className="font-medium">{error.field}: </span>
+                          )}
+                          {error.message}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t bg-gray-50 flex justify-between items-center">
+          <p className="text-sm text-gray-600">
+            Fix all errors before publishing the workflow
+          </p>
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+
+**Integration Example in `WorkflowBuilder.tsx`:**
+
+```typescript
+import { useState } from 'react';
+import ValidationModal from './canvas/ValidationModal';
+import { validateWorkflow, publishWorkflow } from '../../../api/services/workflowService';
+
+export default function WorkflowBuilder() {
+  const { nodes, edges } = useWorkflowStore();
+  const [validationErrors, setValidationErrors] = useState<any[]>([]);
+  const [showValidationModal, setShowValidationModal] = useState(false);
+  const [highlightedNodes, setHighlightedNodes] = useState<Set<string>>(new Set());
+
+  const handlePublish = async () => {
+    try {
+      // Step 1: Call validation API
+      const result = await validateWorkflow(workflowId);
+
+      if (!result.valid) {
+        // Show validation modal with errors
+        setValidationErrors(result.errors);
+        setShowValidationModal(true);
+
+        // Highlight all error nodes
+        const errorNodeIds = new Set(result.errors.map((e: any) => e.nodeId));
+        setHighlightedNodes(errorNodeIds);
+        return;
+      }
+
+      // Step 2: Publish if validation passes
+      await publishWorkflow(workflowId);
+      toast.success('Workflow published successfully!');
+    } catch (error) {
+      toast.error('Failed to publish workflow');
+    }
+  };
+
+  const handleHighlightNode = (nodeId: string) => {
+    // Add this node to highlighted set
+    setHighlightedNodes(new Set([nodeId]));
+
+    // Auto-remove highlight after 3 seconds
+    setTimeout(() => {
+      setHighlightedNodes(new Set());
+    }, 3000);
+  };
+
+  return (
+    <div className="flex flex-col h-screen">
+      {/* Header */}
+      <div className="h-16 bg-white border-b flex items-center justify-between px-4">
+        <h1 className="text-xl font-bold">Workflow Builder</h1>
+        <div className="flex gap-2">
+          <button
+            onClick={handleSave}
+            className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+          >
+            Save Draft
+          </button>
+          <button
+            onClick={handlePublish}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Publish
+          </button>
+        </div>
+      </div>
+
+      {/* Canvas */}
+      <div className="flex-1">
+        <WorkflowCanvas highlightedNodes={highlightedNodes} />
+      </div>
+
+      {/* Validation Modal */}
+      {showValidationModal && (
+        <ValidationModal
+          errors={validationErrors}
+          onClose={() => {
+            setShowValidationModal(false);
+            setHighlightedNodes(new Set());
+          }}
+          onHighlightNode={handleHighlightNode}
+        />
+      )}
+    </div>
+  );
+}
+```
+
+**Update `WorkflowCanvas.tsx` to Support Error Highlighting:**
+
+```typescript
+interface WorkflowCanvasProps {
+  highlightedNodes?: Set<string>;
+}
+
+export default function WorkflowCanvas({ highlightedNodes = new Set() }: WorkflowCanvasProps) {
+  const { nodes, edges } = useWorkflowStore();
+
+  // Add error highlighting to nodes
+  const nodesWithErrors = nodes.map((node) => ({
+    ...node,
+    data: {
+      ...node.data,
+      hasError: highlightedNodes.has(node.id),
+    },
+  }));
+
+  return (
+    <ReactFlow
+      nodes={nodesWithErrors}
+      edges={edges}
+      // ... rest of props
+    />
+  );
+}
+```
+
+**Expected Validation API Response from Dev 3:**
+
+```typescript
+// GET /workFlow/:workflowId/validate
+{
+  "valid": false,
+  "errors": [
+    {
+      "nodeId": "node_1234",
+      "message": "WhatsApp number is required",
+      "field": "config.phoneNumber"
+    },
+    {
+      "nodeId": "node_5678",
+      "message": "API key is missing",
+      "field": "config.apiKey"
+    }
+  ]
+}
+```
+
+**How to Test:**
+1. Create a workflow with unconfigured nodes
+2. Click "Publish" button
+3. ValidationModal should appear showing all errors
+4. Click "Go to Node" button on any error
+5. Canvas should zoom to that node with red highlighting
+6. Error highlighting should fade after 3 seconds
+7. Fix all errors and click "Publish" again
+8. Workflow should publish successfully
+
+**Styling Notes:**
+- Errors are grouped by node for better readability
+- Red color scheme indicates errors clearly
+- "Go to Node" button with eye icon for navigation
+- Modal is centered with semi-transparent backdrop
+- Scrollable content area for long error lists
+- Close button in header and footer for accessibility
+
 ---
 
 ## Part 8: Performance Optimization

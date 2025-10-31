@@ -39,22 +39,58 @@ npm install date-fns  # Date utilities
 npm install lucide-react  # Icons (if not already installed)
 ```
 
+### 1.1. React Query Setup
+
+After installing React Query, you need to set up the QueryClientProvider in your app:
+
+**Create Query Client** (`src/lib/queryClient.ts`):
+
+```typescript
+import { QueryClient } from '@tanstack/react-query';
+
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60, // 1 minute
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+```
+
+**Wrap App with Provider** (in `src/App.tsx` or `src/index.tsx`):
+
+```typescript
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from './lib/queryClient';
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      {/* Your app routes */}
+    </QueryClientProvider>
+  );
+}
+
+export default App;
+```
+
 ### 2. API Endpoints (provided by Dev 3)
 
 You'll be calling these endpoints:
 
 ```typescript
 // Get executions for a workflow (paginated)
-GET /workflow/:workflowId/executions?status=completed&limit=50&offset=0
+GET /workFlow/:workflowId/executions?status=completed&limit=50&offset=0
 
 // Get single execution details
-GET /workflow/execution/:executionId
+GET /workFlow/execution/:executionId
 
 // Get step logs for execution
-GET /workflow/execution/:executionId/logs
+GET /workFlow/execution/:executionId/logs
 
 // Retry failed execution
-POST /workflow/execution/:executionId/retry
+POST /workFlow/execution/:executionId/retry
 ```
 
 ### 3. Core Type Definitions
@@ -705,26 +741,26 @@ export const getExecutions = async (
   if (options.offset) params.append('offset', options.offset.toString());
 
   const response = await axiosInstance.get(
-    `/workflow/${workflowId}/executions?${params.toString()}`
+    `/workFlow/${workflowId}/executions?${params.toString()}`
   );
   return response.data;
 };
 
 export const getExecution = async (executionId: string) => {
-  const response = await axiosInstance.get(`/workflow/execution/${executionId}`);
+  const response = await axiosInstance.get(`/workFlow/execution/${executionId}`);
   return response.data;
 };
 
 export const getExecutionLogs = async (executionId: string) => {
   const response = await axiosInstance.get(
-    `/workflow/execution/${executionId}/logs`
+    `/workFlow/execution/${executionId}/logs`
   );
   return response.data;
 };
 
 export const retryExecution = async (executionId: string) => {
   const response = await axiosInstance.post(
-    `/workflow/execution/${executionId}/retry`
+    `/workFlow/execution/${executionId}/retry`
   );
   return response.data;
 };
@@ -732,9 +768,221 @@ export const retryExecution = async (executionId: string) => {
 
 ---
 
-## Part 4: Optional Enhancements
+## Part 4: Story 5.6 - Polling & Auto-Refresh
 
-### Enhancement 4.1: Dashboard Analytics
+**Tasks from SPRINT.md:**
+- **[DEV4-01]** Implement polling with setInterval (1h)
+- **[DEV4-02]** Add manual "Refresh" button (0.5h)
+- **[DEV4-03]** Clean up interval on unmount (0.5h)
+- **[DEV4-04]** Test: Polling updates list (1h)
+
+### What It Is
+
+Automatic refresh functionality that keeps the monitoring dashboard up-to-date without manual user intervention. This is critical for monitoring running workflows and seeing new executions as they happen.
+
+### Why It's Important
+
+Users need to see:
+- **Running executions** updating in real-time (status changes from running → completed/failed)
+- **New executions** appearing automatically when workflows are triggered
+- **Step progress** updating as the workflow executes
+
+Without polling, users would need to manually refresh the page constantly, which is a poor user experience.
+
+### How to Build It
+
+#### Step 4.1: Implement Auto-Refresh in Execution List
+
+The execution list should automatically refresh every 5 seconds to check for new executions.
+
+**Implementation (already in Part 1 code, but here's the breakdown):**
+
+```typescript
+// In WorkflowMonitoringPage.tsx
+const { data, isLoading, error, refetch } = useQuery({
+  queryKey: ['executions', workflowId, statusFilter, page],
+  queryFn: () => getExecutions(workflowId!, { ... }),
+  enabled: !!workflowId,
+  refetchInterval: 5000, // ← This is the polling interval (5 seconds)
+});
+```
+
+**Key Points:**
+- `refetchInterval: 5000` tells React Query to re-fetch data every 5 seconds
+- Runs automatically in the background
+- Uses the same query function, so no additional code needed
+- Works even when user is not actively interacting with the page
+
+#### Step 4.2: Implement Conditional Auto-Refresh in Execution Details
+
+For execution details, we want faster updates (2 seconds) when executions are still running, but no polling when they're completed.
+
+**Implementation:**
+
+```typescript
+// In ExecutionDetails.tsx
+const { data: executionData } = useQuery({
+  queryKey: ['execution', executionId],
+  queryFn: () => getExecution(executionId),
+  refetchInterval: (data) => {
+    // Only poll if execution is still running
+    return data?.data?.status === 'running' ? 2000 : false;
+  },
+});
+
+const { data: logsData } = useQuery({
+  queryKey: ['execution-logs', executionId],
+  queryFn: () => getExecutionLogs(executionId),
+  refetchInterval: (data) => {
+    // Only poll if any step is still running
+    const hasRunningSteps = data?.data?.some((log: any) => log.status === 'running');
+    return hasRunningSteps ? 2000 : false;
+  },
+});
+```
+
+**Key Points:**
+- `refetchInterval` can be a function that returns a number or `false`
+- `false` means "stop polling"
+- This saves API calls when executions are complete
+- 2 seconds is faster than 5 seconds for better real-time feel
+
+#### Step 4.3: Manual Refresh Button
+
+Users should also have a manual refresh button for immediate updates.
+
+**Implementation (already in ExecutionList.tsx):**
+
+```typescript
+<button
+  onClick={onRefresh}
+  disabled={isLoading}
+  className="flex items-center gap-2 px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+>
+  <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
+  Refresh
+</button>
+```
+
+**Key Points:**
+- Calls the `refetch()` function from React Query
+- Shows spinning icon during refresh
+- Disabled while loading to prevent double-requests
+
+#### Step 4.4: Cleanup on Unmount
+
+React Query handles cleanup automatically, but it's important to understand what happens:
+
+**Automatic Behavior:**
+- When component unmounts, polling stops automatically
+- No memory leaks
+- No need for manual `clearInterval()`
+
+**Manual Cleanup (if using setInterval instead of React Query):**
+
+```typescript
+useEffect(() => {
+  const interval = setInterval(() => {
+    refetch();
+  }, 5000);
+
+  return () => clearInterval(interval); // ← Cleanup
+}, [refetch]);
+```
+
+**Why React Query is Better:**
+- Handles cleanup automatically
+- Prevents refetching when window is not focused (saves API calls)
+- Deduplicates requests if multiple components request same data
+- Built-in error handling and retry logic
+
+### Testing Checklist
+
+**Auto-Refresh:**
+- [ ] Execution list refreshes every 5 seconds
+- [ ] New executions appear automatically
+- [ ] Status badges update (running → completed/failed)
+- [ ] Page doesn't flicker during refresh (React Query caching)
+
+**Conditional Refresh:**
+- [ ] Execution details refresh every 2 seconds when status = running
+- [ ] Polling stops when status = completed or failed
+- [ ] Step logs update in real-time during execution
+
+**Manual Refresh:**
+- [ ] Refresh button triggers immediate update
+- [ ] Button shows spinning icon during refresh
+- [ ] Button is disabled during refresh
+
+**Cleanup:**
+- [ ] Navigate away from page → polling stops (check Network tab)
+- [ ] No console errors about memory leaks
+- [ ] No excessive API calls after unmount
+
+**Performance:**
+- [ ] Polling doesn't slow down UI
+- [ ] Page remains responsive during refresh
+- [ ] Network tab shows requests every 5 seconds (not more)
+
+### Performance Considerations
+
+**Balancing Freshness vs. Performance:**
+
+| Interval | Use Case | Trade-offs |
+|----------|----------|------------|
+| 2 seconds | Active running executions | Fresh data, but more API load |
+| 5 seconds | General monitoring | Good balance |
+| 10+ seconds | Low-priority updates | Saves API calls, but feels slow |
+
+**Best Practices:**
+1. **Use conditional polling** - Only poll when data is changing
+2. **Stop polling when window is inactive** - React Query does this by default
+3. **Use caching** - React Query prevents unnecessary re-renders
+4. **Monitor API load** - If 100 users are polling every 5s, that's 20 requests/second
+
+**Optimization Example:**
+
+```typescript
+refetchInterval: (data) => {
+  // If completed/failed, stop polling
+  if (data?.data?.status !== 'running') return false;
+
+  // If page is hidden, slow down polling
+  if (document.hidden) return 30000; // 30 seconds
+
+  // Normal polling
+  return 2000;
+}
+```
+
+### Common Issues & Troubleshooting
+
+**Issue: "Polling not working"**
+- **Check:** Is `refetchInterval` set correctly?
+- **Check:** Is component mounted? (Polling stops on unmount)
+- **Check:** Is there a network error blocking requests?
+- **Debug:** Open React Query DevTools to inspect query state
+
+**Issue: "Too many API requests"**
+- **Solution:** Increase `refetchInterval` from 2s to 5s
+- **Solution:** Add conditional polling (stop when data is complete)
+- **Solution:** Use `refetchOnWindowFocus: false` if needed
+
+**Issue: "UI flickers during refresh"**
+- **Solution:** React Query should prevent this with caching
+- **Check:** Are you clearing data before refetch? (Don't do this)
+- **Solution:** Use `keepPreviousData: true` in query options
+
+**Issue: "Polling continues after navigation"**
+- **Check:** Is component properly unmounting?
+- **Debug:** Check Network tab - should stop after unmount
+- **Solution:** React Query handles this automatically, might be a bug
+
+---
+
+## Part 5: Optional Enhancements
+
+### Enhancement 5.1: Dashboard Analytics
 
 Add summary stats at the top of the monitoring page:
 
@@ -799,7 +1047,7 @@ function StatCard({
 }
 ```
 
-### Enhancement 4.2: Search by Execution ID
+### Enhancement 5.2: Search by Execution ID
 
 Add search input to find specific execution:
 
@@ -812,7 +1060,7 @@ const filteredExecutions = executions.filter((execution) =>
 );
 ```
 
-### Enhancement 4.3: Export Execution Logs
+### Enhancement 5.3: Export Execution Logs
 
 Add button to download execution logs as JSON:
 

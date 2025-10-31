@@ -253,6 +253,23 @@ import { ExecutionController } from './execution.controller';
 export class ExecutionModule {}
 ```
 
+**IMPORTANT: Module Registration**
+
+After creating the ExecutionModule, you must register it in the main application module:
+
+```typescript
+// In BW_ConsumerService/src/app.module.ts
+import { ExecutionModule } from './integrations/whatsapp/workFlows/execution/execution.module';
+
+@Module({
+  imports: [
+    // ... existing imports
+    ExecutionModule, // Add this
+  ],
+})
+export class AppModule {}
+```
+
 **How to Test:**
 1. Run `npm run start:dev`
 2. Check MongoDB - collections `workflow_executions` and `execution_logs` should be created
@@ -440,6 +457,9 @@ export class ExecutionEngineService {
 
   /**
    * Load workflow from database
+   *
+   * IMPORTANT: This reads from EXISTING 'workflows' collection (not new)
+   * This collection is managed by existing BotWot workflow APIs
    */
   private async loadWorkflow(workflowId: string) {
     const Workflow = this.executionModel.db.model('workflows');
@@ -448,6 +468,10 @@ export class ExecutionEngineService {
 
   /**
    * Load all steps for workflow, ordered
+   *
+   * IMPORTANT: This reads from EXISTING 'workflowsteps' collection (not new)
+   * Steps are created by Dev 1's save workflow functionality
+   * This collection is managed by existing BotWot workflow APIs
    */
   private async loadSteps(workflowId: string) {
     const WorkflowStep = this.executionModel.db.model('workflowsteps');
@@ -1226,16 +1250,16 @@ import {
 import { ExecutionEngineService } from './execution-engine.service';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard'; // Use existing guard
 
-@Controller('workflow/execution')
+@Controller('workFlow')
 @UseGuards(JwtAuthGuard)
 export class ExecutionController {
   constructor(private executionEngine: ExecutionEngineService) {}
 
   /**
    * Execute workflow manually (for testing)
-   * POST /workflow/execution/:workflowId
+   * POST /workFlow/:workflowId/execute
    */
-  @Post(':workflowId')
+  @Post(':workflowId/execute')
   async executeWorkflow(
     @Param('workflowId') workflowId: string,
     @Body() body: { triggerData: Record<string, any> },
@@ -1253,9 +1277,9 @@ export class ExecutionController {
 
   /**
    * Get execution by ID
-   * GET /workflow/execution/:executionId
+   * GET /workFlow/execution/:executionId
    */
-  @Get(':executionId')
+  @Get('execution/:executionId')
   async getExecution(@Param('executionId') executionId: string) {
     const execution = await this.executionEngine.getExecution(executionId);
 
@@ -1274,9 +1298,9 @@ export class ExecutionController {
 
   /**
    * Get executions for workflow
-   * GET /workflow/:workflowId/executions
+   * GET /workFlow/:workflowId/executions
    */
-  @Get('workflow/:workflowId')
+  @Get(':workflowId/executions')
   async getExecutions(
     @Param('workflowId') workflowId: string,
     @Query('status') status?: string,
@@ -1297,9 +1321,9 @@ export class ExecutionController {
 
   /**
    * Get logs for execution
-   * GET /workflow/execution/:executionId/logs
+   * GET /workFlow/execution/:executionId/logs
    */
-  @Get(':executionId/logs')
+  @Get('execution/:executionId/logs')
   async getExecutionLogs(@Param('executionId') executionId: string) {
     const logs = await this.executionEngine.getExecutionLogs(executionId);
 
@@ -1311,9 +1335,9 @@ export class ExecutionController {
 
   /**
    * Retry failed execution
-   * POST /workflow/execution/:executionId/retry
+   * POST /workFlow/execution/:executionId/retry
    */
-  @Post(':executionId/retry')
+  @Post('execution/:executionId/retry')
   async retryExecution(@Param('executionId') executionId: string) {
     const result = await this.executionEngine.retryExecution(executionId);
 
@@ -1330,6 +1354,71 @@ export class ExecutionController {
 2. Verify JWT authentication works
 3. Check responses match expected format
 4. Test error cases (invalid IDs, etc.)
+
+---
+
+## Story 5.2: Get Executions API (Part of Part 4)
+
+**What It Is:** API endpoint to fetch all executions for a workflow with pagination and filtering.
+
+**Tasks from SPRINT.md:**
+- **[DEV3-34]** Implement GET /workFlow/:id/executions (2h)
+- **[DEV3-35]** Add pagination (1h)
+- **[DEV3-36]** Add filters (status, dateRange) (1h)
+- **[DEV3-37]** Test: Endpoint returns executions (1h)
+
+**Implementation:** See Part 2 (Execution Engine Core), method `getExecutions()` at line 467, and Part 4 (API Endpoints) at line 1279.
+
+**Acceptance Criteria:**
+- ✓ GET /workFlow/:workflowId/executions endpoint created
+- ✓ Supports pagination (limit, offset)
+- ✓ Supports filters (status, dateRange)
+- ✓ Returns execution list with metadata
+
+---
+
+## Story 5.4: Get Execution Details API (Part of Part 4)
+
+**What It Is:** API endpoints to fetch detailed information about a single execution including all step logs.
+
+**Tasks from SPRINT.md:**
+- **[DEV3-38]** Implement GET /workFlow/execution/:id (2h)
+- **[DEV3-39]** Implement GET /workFlow/execution/:id/logs (1h)
+- **[DEV3-40]** Test: Endpoints return correct data (1h)
+
+**Implementation:**
+- `getExecution()` method in Part 2 at line 460
+- `getExecutionLogs()` method in Part 2 at line 494
+- GET /workFlow/execution/:executionId endpoint in Part 4 at line 1258
+- GET /workFlow/execution/:executionId/logs endpoint in Part 4 at line 1302
+
+**Acceptance Criteria:**
+- ✓ GET /workFlow/execution/:id endpoint
+- ✓ GET /workFlow/execution/:id/logs endpoint
+- ✓ Returns execution record + all step logs
+- ✓ Step logs ordered by stepOrder
+
+---
+
+## Story 5.5: Retry Failed Execution (Part of Part 4)
+
+**What It Is:** API endpoint to retry a failed workflow execution with the same trigger data.
+
+**Tasks from SPRINT.md:**
+- **[DEV3-41]** Implement POST /workFlow/execution/:id/retry (2h)
+- **[DEV3-42]** Fetch original execution's triggerData (0.5h)
+- **[DEV3-43]** Call executeWorkflow() with same data (0.5h)
+- **[DEV3-44]** Test: Retry creates new execution (1h)
+
+**Implementation:**
+- `retryExecution()` method in Part 2 at line 501
+- POST /workFlow/execution/:executionId/retry endpoint in Part 4 at line 1316
+
+**Acceptance Criteria:**
+- ✓ POST /workFlow/execution/:id/retry endpoint
+- ✓ Creates new execution with same triggerData
+- ✓ Returns new executionId
+- ✓ Only allows retrying failed executions
 
 ---
 
@@ -1511,7 +1600,7 @@ Add to `ExecutionController`:
 ```typescript
 import { WorkflowValidationService } from '../validation/workflow-validation.service';
 
-@Controller('workflow')
+@Controller('workFlow')
 @UseGuards(JwtAuthGuard)
 export class WorkflowController {
   constructor(
@@ -1521,7 +1610,7 @@ export class WorkflowController {
 
   /**
    * Validate workflow before publishing
-   * POST /workflow/:workflowId/validate
+   * POST /workFlow/:workflowId/validate
    */
   @Post(':workflowId/validate')
   async validateWorkflow(@Param('workflowId') workflowId: string) {
@@ -1535,7 +1624,7 @@ export class WorkflowController {
 
   /**
    * Publish workflow (make it executable)
-   * POST /workflow/:workflowId/publish
+   * POST /workFlow/:workflowId/publish
    */
   @Post(':workflowId/publish')
   async publishWorkflow(@Param('workflowId') workflowId: string) {
